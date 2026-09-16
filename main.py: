@@ -1,1 +1,286 @@
+import asyncio
+import logging
+import sqlite3
+from aiogram import Bot, Dispatcher, F, types
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+# ==================== НАСТРОЙКИ ====================
+BOT_TOKEN = "8996747968:AAGEbSeyRMDEzS-dbkVRIev28Yk8-RJNZOA"
+ADMIN_CHAT_ID = -1003913257980
+# ===================================================
+
+logging.basicConfig(level=logging.INFO)
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(storage=MemoryStorage())
+
+
+# ================= БАЗА ДАННЫХ =================
+def init_db():
+  conn = sqlite3.connect("database.db")
+  cursor = conn.cursor()
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS characters (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            fio TEXT,
+            birth_date TEXT,
+            lore TEXT,
+            gender TEXT,
+            photo_id TEXT,
+            signature_id TEXT,
+            status TEXT
+        )
+    """)
+  conn.commit()
+  conn.close()
+
+
+def save_character(
+    user_id,
+    username,
+    fio,
+    birth_date,
+    lore,
+    gender,
+    photo_id,
+    signature_id,
+    status="pending",
+):
+  conn = sqlite3.connect("database.db")
+  cursor = conn.cursor()
+  cursor.execute(
+      """
+        INSERT OR REPLACE INTO characters (user_id, username, fio, birth_date, lore, gender, photo_id, signature_id, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+      (
+          user_id,
+          username,
+          fio,
+          birth_date,
+          lore,
+          gender,
+          photo_id,
+          signature_id,
+          status,
+      ),
+  )
+  conn.commit()
+  conn.close()
+
+
+def update_status(user_id, status):
+  conn = sqlite3.connect("database.db")
+  cursor = conn.cursor()
+  cursor.execute(
+      "UPDATE characters SET status = ? WHERE user_id = ?", (status, user_id)
+  )
+  conn.commit()
+  conn.close()
+
+
+# ================= ШАГИ РЕГИСТРАЦИИ (FSM) =================
+class RPForm(StatesGroup):
+  fio = State()
+  birth_date = State()
+  lore = State()
+  gender = State()
+  photo = State()
+  signature = State()
+
+
+# ================= ОБРАБОТЧИКИ СООБЩЕНИЙ =================
+@dp.message(Command("start"))
+async def start_cmd(message: types.Message, state: FSMContext):
+  await message.answer(
+      "👋 Привет! Добро пожаловать на наш РП-проект.\n\n"
+      "Чтобы зарегистрировать своего персонажа, введи команду /create"
+  )
+
+
+@dp.message(Command("create"))
+async def create_cmd(message: types.Message, state: FSMContext):
+  await message.answer("📝 **Шаг 1 из 6:** Напиши ФИО своего персонажа:")
+  await state.set_state(RPForm.fio)
+
+
+@dp.message(RPForm.fio)
+async def process_fio(message: types.Message, state: FSMContext):
+  await state.update_data(fio=message.text)
+  await message.answer(
+      "📅 **Шаг 2 из 6:** Укажи дату рождения персонажа (например: 15.05.1998):"
+  )
+  await state.set_state(RPForm.birth_date)
+
+
+@dp.message(RPForm.birth_date)
+async def process_birth_date(message: types.Message, state: FSMContext):
+  await state.update_data(birth_date=message.text)
+  await message.answer(
+      "📖 **Шаг 3 из 6:** Напиши лор/историю персонажа (биографию и квенту):"
+  )
+  await state.set_state(RPForm.lore)
+
+
+@dp.message(RPForm.lore)
+async def process_lore(message: types.Message, state: FSMContext):
+  await state.update_data(lore=message.text)
+  await message.answer("🚻 **Шаг 4 из 6:** Укажи пол персонажа:")
+  await state.set_state(RPForm.gender)
+
+
+@dp.message(RPForm.gender)
+async def process_gender(message: types.Message, state: FSMContext):
+  await state.update_data(gender=message.text)
+  await message.answer(
+      "🖼 **Шаг 5 из 6:** Пришли **фотографию** внешности персонажа:"
+  )
+  await state.set_state(RPForm.photo)
+
+
+@dp.message(RPForm.photo, F.photo)
+async def process_photo(message: types.Message, state: FSMContext):
+  photo_id = message.photo[-1].file_id
+  await state.update_data(photo=photo_id)
+  await message.answer(
+      "✍️ **Шаг 6 из 6:** Отправь **фотографию росписи** персонажа:"
+  )
+  await state.set_state(RPForm.signature)
+
+
+@dp.message(RPForm.photo)
+async def process_photo_invalid(message: types.Message):
+  await message.answer("⚠️ Пожалуйста, отправь именно **фотографию**!")
+
+
+@dp.message(RPForm.signature, F.photo)
+async def process_signature(message: types.Message, state: FSMContext):
+  signature_id = message.photo[-1].file_id
+  await state.update_data(signature=signature_id)
+
+  data = await state.get_data()
+  user_id = message.from_user.id
+  username = message.from_user.username or f"id_{user_id}"
+
+  save_character(
+      user_id=user_id,
+      username=username,
+      fio=data["fio"],
+      birth_date=data["birth_date"],
+      lore=data["lore"],
+      gender=data["gender"],
+      photo_id=data["photo"],
+      signature_id=data["signature"],
+      status="pending",
+  )
+
+  admin_kb = InlineKeyboardMarkup(
+      inline_keyboard=[[
+          InlineKeyboardButton(
+              text="✅ Принять", callback_data=f"accept_{user_id}"
+          ),
+          InlineKeyboardButton(
+              text="❌ Отклонить", callback_data=f"reject_{user_id}"
+          ),
+      ]]
+  )
+
+  card_text = (
+      f"📋 **Новая анкета на проверку!**\n\n"
+      f"👤 **ФИО:** {data['fio']}\n"
+      f"📅 **Дата рождения:** {data['birth_date']}\n"
+      f"🚻 **Пол:** {data['gender']}\n"
+      f"📖 **Лор персонажа:**\n{data['lore']}\n\n"
+      f"💬 **Игрок:** @{username} (ID: `{user_id}`)"
+  )
+
+  await bot.send_photo(
+      ADMIN_CHAT_ID,
+      photo=data["photo"],
+      caption=card_text,
+      reply_markup=admin_kb,
+      parse_mode="Markdown",
+  )
+
+  await bot.send_photo(
+      ADMIN_CHAT_ID,
+      photo=data["signature"],
+      caption=f"✍️ **Роспись персонажа:** @{username}",
+  )
+
+  await message.answer(
+      "✅ Твоя анкета и роспись успешно отправлены на проверку администрации!\nОжидай решения."
+  )
+  await state.clear()
+
+
+@dp.message(RPForm.signature)
+async def process_signature_invalid(message: types.Message):
+  await message.answer(
+      "⚠️ Пожалуйста, пришли фотографию росписи именно картинкой!"
+  )
+
+
+# ================= КНОПКИ АДМИНИСТРАЦИИ =================
+@dp.callback_query(F.data.startswith("accept_"))
+async def accept_character(callback: types.CallbackQuery):
+  user_id = int(callback.data.split("_")[1])
+  update_status(user_id, "accepted")
+
+  new_caption = (
+      callback.message.caption
+      + f"\n\n🟢 **РЕШЕНИЕ:** Принято администратором @{callback.from_user.username}"
+  )
+  await callback.message.edit_caption(
+      caption=new_caption, parse_mode="Markdown"
+  )
+
+  try:
+    await bot.send_message(
+        user_id,
+        "🎉 **Поздравляем!** Твоя анкета и роспись персонажа были **одобрены** администрацией.\nПриятной игры!",
+    )
+  except Exception:
+    pass
+
+  await callback.answer("Анкета принята!")
+
+
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_character(callback: types.CallbackQuery):
+  user_id = int(callback.data.split("_")[1])
+  update_status(user_id, "rejected")
+
+  new_caption = (
+      callback.message.caption
+      + f"\n\n🔴 **РЕШЕНИЕ:** Отклонено администратором @{callback.from_user.username}"
+  )
+  await callback.message.edit_caption(
+      caption=new_caption, parse_mode="Markdown"
+  )
+
+  try:
+    await bot.send_message(
+        user_id,
+        "❌ К сожалению, твоя анкета персонажа была **отклонена**.\nТы можешь переподать её заново с помощью команды /create",
+    )
+  except Exception:
+    pass
+
+  await callback.answer("Анкета отклонена!")
+
+
+# ================= ЗАПУСК БОТА =================
+async def main():
+  init_db()
+  print("Бот успешно запущен!")
+  await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+  asyncio.run(main())
 
