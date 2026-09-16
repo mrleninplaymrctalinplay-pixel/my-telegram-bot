@@ -10,7 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
 
 # ==================== НАСТРОЙКИ ====================
-BOT_TOKEN = "8996747968:AAGEbSeyRMDEzS-dbkVRIev28Yk8-RJNZOA"
+BOT_TOKEN = "8996747968:AAGEBSeyRMDEzS-dbkVRIev28Yk8-RJNZOA"
 ADMIN_CHAT_ID = -1003913257980
 # ====================================================
 
