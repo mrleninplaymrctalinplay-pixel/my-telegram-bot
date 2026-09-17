@@ -9,16 +9,34 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: #000; color: #fff; padding-bottom: 70px; }
         
-        /* Верхняя шапка */
+        /* Экраны */
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        /* Шапка */
         .header { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #222; position: sticky; top: 0; background: #000; z-index: 10; }
         .logo { font-size: 20px; font-weight: 800; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .btn-create { background: #fff; color: #000; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 12px; cursor: pointer; }
 
-        /* Лента постов */
+        /* Нижняя навигация */
+        .nav-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: #000; border-top: 1px solid #222; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .nav-item { font-size: 24px; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; }
+        .nav-item.active { opacity: 1; }
+
+        /* Экран регистрации */
+        #reg-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 1000; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .reg-box { width: 100%; max-width: 320px; background: #161616; padding: 24px; border-radius: 16px; border: 1px solid #333; text-align: center; }
+        .reg-box h2 { margin-bottom: 8px; font-size: 20px; }
+        .reg-box p { font-size: 12px; color: #888; margin-bottom: 16px; }
+        .reg-box input { width: 100%; background: #222; border: 1px solid #333; border-radius: 10px; padding: 10px; color: #fff; font-size: 14px; margin-bottom: 12px; outline: none; text-align: center; }
+        .error-text { color: #ff4d4d; font-size: 11px; margin-bottom: 10px; display: none; }
+
+        /* Лента */
         .post { margin-bottom: 16px; border-bottom: 1px solid #1a1a1a; padding-bottom: 12px; }
         .post-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; }
         .user-info { display: flex; align-items: center; gap: 10px; }
-        .avatar { width: 32px; height: 32px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: #fff; text-transform: uppercase; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; color: #fff; text-transform: uppercase; overflow: hidden; }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
         .username { font-size: 13px; font-weight: 600; }
         
         .post-image-container { position: relative; width: 100%; max-height: 400px; background: #111; overflow: hidden; }
@@ -26,7 +44,6 @@
         
         .post-actions { display: flex; gap: 16px; padding: 10px 12px 6px 12px; font-size: 24px; align-items: center; }
         
-        /* Анимация сердечка */
         .like-btn { cursor: pointer; user-select: none; display: inline-block; transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .like-btn.liked { transform: scale(1.3); }
         @keyframes heartPulse {
@@ -40,75 +57,165 @@
         .post-caption { font-size: 13px; padding: 0 12px 8px 12px; line-height: 1.4; color: #ddd; }
         .post-caption b { color: #fff; margin-right: 6px; }
 
-        /* Блок комментариев */
+        /* Комментарии */
         .comments-section { padding: 0 12px; margin-top: 6px; }
-        .comment-item { font-size: 12px; color: #ccc; margin-bottom: 4px; }
-        .comment-item b { color: #fff; margin-right: 6px; }
+        .comment-item { font-size: 12px; color: #ccc; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .comment-content b { color: #fff; margin-right: 6px; }
+        .del-comment { color: #ff4d4d; cursor: pointer; font-size: 11px; margin-left: 8px; }
         .add-comment-box { display: flex; gap: 8px; padding: 6px 12px; margin-top: 8px; }
         .add-comment-box input { flex: 1; background: #161616; border: 1px solid #333; border-radius: 8px; padding: 6px 10px; color: #fff; font-size: 12px; outline: none; }
-        .add-comment-box input:focus { border-color: #555; }
         .add-comment-box button { background: #333; color: #fff; border: none; border-radius: 8px; padding: 0 12px; font-size: 12px; cursor: pointer; font-weight: 600; }
 
-        /* Модальное окно */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); padding: 20px; z-index: 200; overflow-y: auto; }
-        .modal-content { background: #161616; border-radius: 16px; padding: 20px; margin-top: 40px; border: 1px solid #333; }
-        .modal-content h3 { margin-bottom: 15px; font-size: 16px; }
-        .form-group { margin-bottom: 12px; }
+        /* Разделы: Профиль, Директ, Друзья */
+        .section-padding { padding: 16px; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        .profile-card { background: #161616; border: 1px solid #333; padding: 20px; border-radius: 16px; text-align: center; }
+        .profile-avatar-big { width: 80px; height: 80px; border-radius: 50%; background: #333; margin: 0 auto 12px auto; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .profile-avatar-big img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .friends-list, .chat-list { display: flex; flex-direction: column; gap: 8px; }
+        .friend-row { display: flex; justify-content: space-between; align-items: center; background: #161616; padding: 10px 14px; border-radius: 10px; border: 1px solid #222; }
+        .btn-action { background: #fff; color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 11px; cursor: pointer; }
+
+        /* Поля ввода */
+        .form-group { margin-bottom: 12px; text-align: left; }
         .form-group label { display: block; font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; }
         .form-group input, .form-group textarea { width: 100%; background: #222; border: 1px solid #333; border-radius: 10px; padding: 10px; color: #fff; font-size: 13px; outline: none; }
         .form-group textarea { resize: vertical; height: 80px; }
+        .form-group input[type="file"] { padding: 6px; background: #161616; cursor: pointer; }
+
+        /* Модалки */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); padding: 20px; z-index: 200; overflow-y: auto; }
+        .modal-content { background: #161616; border-radius: 16px; padding: 20px; margin-top: 40px; border: 1px solid #333; }
+        .modal-content h3 { margin-bottom: 15px; font-size: 16px; }
         .btn-submit { width: 100%; background: #fff; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; margin-top: 10px; cursor: pointer; }
         .btn-close { width: 100%; background: transparent; color: #888; border: none; padding: 10px; margin-top: 5px; cursor: pointer; font-size: 13px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="logo">GreeLand Gram</div>
-        <button class="btn-create" onclick="openModal()">+ Пост</button>
+    <!-- Экран регистрации -->
+    <div id="reg-screen">
+        <div class="reg-box">
+            <h2>Регистрация</h2>
+            <p>Придумайте юзернейм (от 5 до 12 символов: буквы, цифры, знаки)</p>
+            <input type="text" id="reg-input" placeholder="Ваш юзернейм...">
+            <div class="error-text" id="reg-error">От 5 до 12 символов!</div>
+            <button class="btn-submit" onclick="registerUser()">Войти в соцсеть</button>
+        </div>
     </div>
 
-    <div id="feed">
-        <!-- Пример поста -->
-        <div class="post" id="post-initial">
-            <div class="post-header">
-                <div class="user-info">
-                    <div class="avatar">GL</div>
-                    <div class="username">greeland_official</div>
+    <!-- Экран Лента -->
+    <div id="screen-feed" class="screen active">
+        <div class="header">
+            <div class="logo">GreeLand Gram</div>
+            <button class="btn-create" onclick="openModal('createModal')">+ Пост</button>
+        </div>
+        <div id="feed">
+            <div class="post" id="post-initial">
+                <div class="post-header">
+                    <div class="user-info">
+                        <div class="avatar">GL</div>
+                        <div class="username">greeland_official</div>
+                    </div>
                 </div>
-            </div>
-            <div class="post-image-container">
-                <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60" class="post-image" alt="Post">
-            </div>
-            <div class="post-actions">
-                <span class="like-btn" onclick="toggleLike(this)">🤍</span>
-            </div>
-            <div class="likes-count"><span>1247</span> отметок «Нравится»</div>
-            <div class="post-caption"><b>greeland_official</b> Официальная соцсеть проекта GreeLand открыта! Делитесь кадрами 🌴✨</div>
-            
-            <div class="comments-section" id="comments-initial">
-                <div class="comment-item"><b>admin:</b> Добро пожаловать!</div>
-            </div>
-            <div class="add-comment-box">
-                <input type="text" placeholder="Добавить комментарий..." id="input-initial" onkeydown="checkEnter(event, 'initial')">
-                <button onclick="addComment('initial')">Отправить</button>
+                <div class="post-image-container">
+                    <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60" class="post-image" alt="Post">
+                </div>
+                <div class="post-actions">
+                    <span class="like-btn" onclick="toggleLike(this)">🤍</span>
+                </div>
+                <div class="likes-count"><span>1247</span> отметок «Нравится»</div>
+                <div class="post-caption"><b>greeland_official</b> Добро пожаловать в GreeLand Gram! 🌴✨</div>
+                
+                <div class="comments-section" id="comments-initial">
+                    <div class="comment-item">
+                        <div class="comment-content"><b>admin:</b> Отличное приложение!</div>
+                    </div>
+                </div>
+                <div class="add-comment-box">
+                    <input type="text" placeholder="Добавить комментарий..." id="input-initial" onkeydown="checkEnter(event, 'initial')">
+                    <button onclick="addComment('initial')">Отправить</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Экран Друзья -->
+    <div id="screen-friends" class="screen">
+        <div class="header"><div class="logo">Друзья</div><button class="btn-create" onclick="openModal('addFriendModal')">+ Добавить</button></div>
+        <div class="section-padding">
+            <div class="friends-list" id="friends-container">
+                <div class="friend-row"><span>@alex_pro</span> <button class="btn-action">Написать</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран Директ -->
+    <div id="screen-direct" class="screen">
+        <div class="header"><div class="logo">Директ (Сообщения)</div></div>
+        <div class="section-padding">
+            <div class="chat-list">
+                <div class="friend-row" onclick="alert('Чат с @alex_pro откроется здесь')">
+                    <span><b>@alex_pro:</b> Привет, как дела?</span>
+                    <button class="btn-action">Открыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран Профиль -->
+    <div id="screen-profile" class="screen">
+        <div class="header"><div class="logo">Профиль</div></div>
+        <div class="section-padding">
+            <div class="profile-card">
+                <div class="profile-avatar-big" id="profile-avatar-view">👤</div>
+                <h3 id="profile-username-view">@user</h3>
+                <p style="font-size: 12px; color: #888; margin-top: 5px;">Участник GreeLand Gram</p>
+                <button class="btn-submit" style="margin-top: 15px;" onclick="openModal('editProfileModal')">Загрузить аватарку</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижняя панель навигации -->
+    <div class="nav-bar">
+        <span class="nav-item active" onclick="switchScreen('feed', this)">🏠</span>
+        <span class="nav-item" onclick="switchScreen('friends', this)">👥</span>
+        <span class="nav-item" onclick="switchScreen('direct', this)">💬</span>
+        <span class="nav-item" onclick="switchScreen('profile', this)">👤</span>
+    </div>
+
+    <!-- Модалка создания поста -->
     <div id="createModal" class="modal">
         <div class="modal-content">
             <h3>Новая публикация</h3>
-            <div class="form-group">
-                <label>Ссылка на фото (URL):</label>
-                <input type="text" id="postImage" placeholder="https://...">
-            </div>
-            <div class="form-group">
-                <label>Описание:</label>
-                <textarea id="postCaption" placeholder="Что нового?"></textarea>
-            </div>
+            <div class="form-group"><label>Ссылка на фото (URL):</label><input type="text" id="postImage" placeholder="https://..."></div>
+            <div class="form-group"><label>Описание:</label><textarea id="postCaption" placeholder="Что нового?"></textarea></div>
             <button class="btn-submit" onclick="publishPost()">Поделиться</button>
-            <button class="btn-close" onclick="closeModal()">Отмена</button>
+            <button class="btn-close" onclick="closeModal('createModal')">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модалка добавления друга -->
+    <div id="addFriendModal" class="modal">
+        <div class="modal-content">
+            <h3>Добавить друга</h3>
+            <div class="form-group"><label>Юзернейм друга:</label><input type="text" id="friendInput" placeholder="@username"></div>
+            <button class="btn-submit" onclick="addFriend()">Добавить</button>
+            <button class="btn-close" onclick="closeModal('addFriendModal')">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модалка загрузки аватарки из галереи -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <h3>Выбрать аватарку</h3>
+            <div class="form-group">
+                <label>Выберите фото из галереи:</label>
+                <input type="file" id="avatarFile" accept="image/*">
+            </div>
+            <button class="btn-submit" onclick="saveAvatarFromFile()">Установить</button>
+            <button class="btn-close" onclick="closeModal('editProfileModal')">Отмена</button>
         </div>
     </div>
 
@@ -116,20 +223,60 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        let userTelegram = "player";
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            let u = tg.initDataUnsafe.user;
-            userTelegram = u.username ? `@${u.username}` : u.first_name;
+        let currentUser = {
+            username: "",
+            avatar: ""
+        };
+
+        // Регистрация
+        function registerUser() {
+            let val = document.getElementById('reg-input').value.trim();
+            let err = document.getElementById('reg-error');
+            
+            if (val.length < 5 || val.length > 12) {
+                err.style.display = 'block';
+                return;
+            }
+            
+            currentUser.username = val.startsWith('@') ? val : '@' + val;
+            document.getElementById('profile-username-view').innerText = currentUser.username;
+            document.getElementById('reg-screen').style.display = 'none';
         }
 
-        function openModal() { document.getElementById('createModal').style.display = 'block'; }
-        function closeModal() { document.getElementById('createModal').style.display = 'none'; }
+        // Переключение экранов
+        function switchScreen(screenName, el) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${screenName}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+        }
 
+        function openModal(id) { document.getElementById(id).style.display = 'block'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        // Загрузка аватарки файлом из галереи
+        function saveAvatarFromFile() {
+            let fileInput = document.getElementById('avatarFile');
+            if (fileInput.files && fileInput.files[0]) {
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    currentUser.avatar = e.target.result;
+                    let html = `<img src="${currentUser.avatar}" alt="avatar">`;
+                    document.getElementById('profile-avatar-view').innerHTML = html;
+                    closeModal('editProfileModal');
+                }
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                alert("Выберите файл картинки!");
+            }
+        }
+
+        // Лайки с анимацией
         function toggleLike(el) {
             let countContainer = el.closest('.post').querySelector('.likes-count span');
             let currentLikes = parseInt(countContainer.innerText);
 
-            // Анимация сердечка
             el.classList.add('like-pulse');
             setTimeout(() => el.classList.remove('like-pulse'), 300);
 
@@ -144,41 +291,62 @@
             }
         }
 
+        // Комментарии (с удалением своих)
         function addComment(postId) {
             let input = document.getElementById(`input-${postId}`);
             let text = input.value.trim();
             if (!text) return;
 
             let commentsContainer = document.getElementById(`comments-${postId}`);
+            let commentId = 'c-' + Date.now();
+            
             let commentDiv = document.createElement('div');
             commentDiv.className = 'comment-item';
-            commentDiv.innerHTML = `<b>${userTelegram}:</b> ${text}`;
+            commentDiv.id = commentId;
+            commentDiv.innerHTML = `
+                <div class="comment-content"><b>${currentUser.username}:</b> ${text}</div>
+                <span class="del-comment" onclick="document.getElementById('${commentId}').remove()">✕</span>
+            `;
             
             commentsContainer.appendChild(commentDiv);
             input.value = '';
         }
 
         function checkEnter(event, postId) {
-            if (event.key === 'Enter') {
-                addComment(postId);
-            }
+            if (event.key === 'Enter') addComment(postId);
         }
 
+        // Добавление друзей
+        function addFriend() {
+            let fName = document.getElementById('friendInput').value.trim();
+            if(!fName) return;
+            let container = document.getElementById('friends-container');
+            
+            let row = document.createElement('div');
+            row.className = 'friend-row';
+            row.innerHTML = `<span>${fName.startsWith('@')?fName:'@'+fName}</span> <button class="btn-action" onclick="alert('Чат открыт')">Написать</button>`;
+            container.appendChild(row);
+            
+            closeModal('addFriendModal');
+            document.getElementById('friendInput').value = '';
+        }
+
+        // Публикация поста
         function publishPost() {
             let imgUrl = document.getElementById('postImage').value;
             let caption = document.getElementById('postCaption').value;
-
             if (!imgUrl) { alert("Добавьте ссылку на картинку!"); return; }
 
             let postId = Date.now();
             let feed = document.getElementById('feed');
+            let avatarHtml = currentUser.avatar ? `<img src="${currentUser.avatar}" alt="av">` : currentUser.username.substring(1,3).toUpperCase();
             
             let postHtml = `
                 <div class="post" id="post-${postId}">
                     <div class="post-header">
                         <div class="user-info">
-                            <div class="avatar">${userTelegram.substring(0,2).toUpperCase()}</div>
-                            <div class="username">${userTelegram}</div>
+                            <div class="avatar">${avatarHtml}</div>
+                            <div class="username">${currentUser.username}</div>
                         </div>
                     </div>
                     <div class="post-image-container">
@@ -188,7 +356,7 @@
                         <span class="like-btn" onclick="toggleLike(this)">🤍</span>
                     </div>
                     <div class="likes-count"><span>0</span> отметок «Нравится»</div>
-                    <div class="post-caption"><b>${userTelegram}</b> ${caption}</div>
+                    <div class="post-caption"><b>${currentUser.username}</b> ${caption}</div>
                     
                     <div class="comments-section" id="comments-${postId}"></div>
                     <div class="add-comment-box">
@@ -199,7 +367,7 @@
             `;
 
             feed.insertAdjacentHTML('afterbegin', postHtml);
-            closeModal();
+            closeModal('createModal');
             document.getElementById('postImage').value = '';
             document.getElementById('postCaption').value = '';
         }
