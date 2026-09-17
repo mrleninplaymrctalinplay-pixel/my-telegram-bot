@@ -18,19 +18,6 @@
       padding: 20px;
       overflow-x: hidden;
     }
-    .leaves-container {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 1;
-    }
-    .leaf {
-      position: absolute; top: -10%; user-select: none;
-      animation: fall linear infinite; opacity: 0.8;
-    }
-    @keyframes fall {
-      0% { transform: translateY(0vh) rotate(0deg) translateX(0px); opacity: 0.9; }
-      50% { transform: translateY(50vh) rotate(180deg) translateX(50px); }
-      100% { transform: translateY(110vh) rotate(360deg) translateX(-30px); opacity: 0.2; }
-    }
     .paper-form {
       position: relative; z-index: 10; background: #fbf8ef;
       background-image: radial-gradient(#e2d9c8 1px, transparent 1px);
@@ -45,7 +32,6 @@
     }
     .paper-header h1 { font-size: 20px; color: #8b0000; text-transform: uppercase; }
     .paper-header p { font-size: 13px; color: #555; margin-top: 5px; font-style: italic; }
-    .pen-icon { position: absolute; top: -10px; right: -5px; font-size: 24px; transform: rotate(-45deg); }
     .form-group { margin-bottom: 18px; }
     label { display: block; font-weight: bold; font-size: 14px; color: #4a3b32; margin-bottom: 6px; }
     input, select, textarea {
@@ -53,12 +39,9 @@
       border: 1px solid #b5a48b; border-bottom: 2px solid #8b0000;
       border-radius: 3px; font-family: inherit; font-size: 14px; color: #111; outline: none;
     }
-    /* Рукописный стиль для поля подписи */
     input.signature-input {
       font-family: 'Brush Script MT', 'Courier New', cursive;
-      font-size: 20px;
-      letter-spacing: 1px;
-      color: #000080;
+      font-size: 20px; color: #000080;
     }
     textarea { resize: vertical; min-height: 80px; }
     .submit-btn {
@@ -70,11 +53,8 @@
   </style>
 </head>
 <body>
-  <div class="leaves-container" id="leaves"></div>
-
   <div class="paper-form">
     <div class="paper-header">
-      <span class="pen-icon">✒️</span>
       <h1 id="title">🇨🇦 APPLICATION FORM</h1>
       <p id="subtitle">Government of Canada / Character Registration</p>
     </div>
@@ -104,12 +84,17 @@
         </select>
       </div>
 
+      <!-- ПОЛЕ ДЛЯ ССЫЛКИ ИЛИ ОПИСАНИЯ СКИНА -->
+      <div class="form-group">
+        <label id="lbl_skin">Character Skin / Photo Link:</label>
+        <input type="url" id="skinUrl" required placeholder="https://imgur.com/... or Roblox Profile Link">
+      </div>
+
       <div class="form-group">
         <label id="lbl_bio">Character Biography:</label>
         <textarea id="bio" required placeholder="Short background story..."></textarea>
       </div>
 
-      <!-- ПОЛЕ ПОДПИСИ -->
       <div class="form-group">
         <label id="lbl_signature">Official Signature (English letters):</label>
         <input type="text" id="signature" class="signature-input" required placeholder="J. Doe" pattern="[A-Za-z\s\.\'-]+" title="Please use English letters only">
@@ -133,12 +118,13 @@
         gender: "Пол:",
         select_g: "Выберите пол...",
         male: "Мужской", female: "Женский",
+        skin: "Ссылка на фото/скриншот скина:",
         bio: "Биография персонажа:",
         signature: "Личная подпись (англ. буквами):",
         submit: "✍️ Подписать и отправить"
       },
       uk: {
-        title: "🇨🇦 РЕЄСТРАЦІЙНИЙ БЛАНК",
+        title: "🇨🇦 РЄЄСТРАЦІЙНИЙ БЛАНК",
         subtitle: "Уряд Канади / Анкета Персонажа",
         roblox: "Нікнейм у Roblox:",
         fullname: "Ім'я та Прізвище персонажа:",
@@ -146,6 +132,7 @@
         gender: "Стать:",
         select_g: "Оберіть стать...",
         male: "Чоловіча", female: "Жіноча",
+        skin: "Посилання на фото скина:",
         bio: "Біографія персонажа:",
         signature: "Особистий підпис (англ. літерами):",
         submit: "✍️ Підписати та надіслати"
@@ -159,6 +146,7 @@
         gender: "Gender:",
         select_g: "Select gender...",
         male: "Male", female: "Female",
+        skin: "Skin Photo Link (Imgur/Roblox):",
         bio: "Character Biography:",
         signature: "Official Signature (English letters):",
         submit: "✍️ Submit Application"
@@ -172,6 +160,7 @@
         gender: "Жынысы:",
         select_g: "Жынысты таңдаңыз...",
         male: "Ер", female: "Әйел",
+        skin: "Скин фотосының сілтемесі:",
         bio: "Кейіпкер өмірбаяны:",
         signature: "Жеке қолтаңба (ағылшын әріптерімен):",
         submit: "✍️ Қол қою және жіберу"
@@ -191,22 +180,10 @@
     document.getElementById('opt_select').innerText = t.select_g;
     document.getElementById('opt_male').innerText = t.male;
     document.getElementById('opt_female').innerText = t.female;
+    document.getElementById('lbl_skin').innerText = t.skin;
     document.getElementById('lbl_bio').innerText = t.bio;
     document.getElementById('lbl_signature').innerText = t.signature;
     document.getElementById('btn_submit').innerText = t.submit;
-
-    // Падающие канадские листья
-    const leavesContainer = document.getElementById('leaves');
-    for (let i = 0; i < 18; i++) {
-      const leaf = document.createElement('div');
-      leaf.className = 'leaf';
-      leaf.innerText = '🍁';
-      leaf.style.left = Math.random() * 100 + '%';
-      leaf.style.animationDuration = (5 + Math.random() * 6) + 's';
-      leaf.style.animationDelay = (Math.random() * 4) + 's';
-      leaf.style.fontSize = (16 + Math.random() * 18) + 'px';
-      leavesContainer.appendChild(leaf);
-    }
 
     document.getElementById('regForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -215,6 +192,7 @@
         fullName: document.getElementById('fullName').value,
         dob: document.getElementById('dob').value,
         gender: document.getElementById('gender').value,
+        skinUrl: document.getElementById('skinUrl').value,
         bio: document.getElementById('bio').value,
         signature: document.getElementById('signature').value
       };
