@@ -1,1 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GreeLand ID Registration</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg-color: #f4f6f9;
+      --card-bg: #ffffff;
+      --text-color: #1c1e21;
+      --input-bg: #f0f2f5;
+      --accent-color: #0088cc;
+      --border-color: #dcdfe6;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      box-sizing: border-box;
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 20px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #555;
+    }
+
+    label .required {
+      color: #e53935;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg);
+      font-size: 14px;
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent-color);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* Photo Upload Box */
+    .photo-upload {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      background-color: var(--input-bg);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .photo-upload input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .photo-preview {
+      max-width: 100%;
+      max-height: 150px;
+      border-radius: 8px;
+      display: none;
+      margin-top: 10px;
+    }
+
+    .submit-btn {
+      width: 100%;
+      background-color: var(--accent-color);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .submit-btn:active {
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Character Registration</h2>
+
+    <form id="regForm">
+      <!-- Roblox Username -->
+      <div class="form-group">
+        <label>Roblox Username <span class="required">*</span></label>
+        <input type="text" id="robloxNick" placeholder="Player_1" required>
+      </div>
+
+      <!-- Character Full Name (Canadian format) -->
+      <div class="form-group">
+        <label>Character Full Name <span class="required">*</span></label>
+        <input type="text" id="fullName" placeholder="e.g., John Smith" required>
+      </div>
+
+      <!-- Date of Birth -->
+      <div class="form-group">
+        <label>Date of Birth <span class="required">*</span></label>
+        <input type="date" id="dob" required>
+      </div>
+
+      <!-- Gender -->
+      <div class="form-group">
+        <label>Gender <span class="required">*</span></label>
+        <select id="gender" required>
+          <option value="" disabled selected>Select gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <!-- Biography -->
+      <div class="form-group">
+        <label>Biography <span class="required">*</span></label>
+        <textarea id="bio" placeholder="Character history & background..." required></textarea>
+      </div>
+
+      <!-- Character Photo -->
+      <div class="form-group">
+        <label>Character Photo</label>
+        <div class="photo-upload">
+          <div id="uploadText">
+            📁 <b>Click to upload photo</b><br>
+            <small style="color: #777;">PNG, JPG up to 3MB</small>
+          </div>
+          <input type="file" id="photoInput" accept="image/*" onchange="previewImage(event)">
+          <img id="photoPreview" class="photo-preview" alt="Preview">
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn">Submit Registration</button>
+    </form>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand(); // Раскрыть окно на весь экран
+
+    function previewImage(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.getElementById('photoPreview');
+          img.src = e.target.value;
+          img.style.display = 'block';
+          document.getElementById('uploadText').style.display = 'none';
+        }
+        reader.readAsDataURL(file);
+      }
+    }
+
+    document.getElementById('regForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const data = {
+        robloxNick: document.getElementById('robloxNick').value,
+        fullName: document.getElementById('fullName').value,
+        dob: document.getElementById('dob').value,
+        gender: document.getElementById('gender').value,
+        bio: document.getElementById('bio').value
+      };
+
+      // Отправка данных обратно в бота Telegram
+      tg.sendData(JSON.stringify(data));
+      tg.close();
+    });
+  </script>
+</body>
+</html>
 
