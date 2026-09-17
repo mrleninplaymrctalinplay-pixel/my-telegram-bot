@@ -135,9 +135,9 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
     
-    # Ссылки на мини-приложения с передачей языка и страницы
+    # Ссылки на мини-приложения с учетом файлов на GitHub Pages
     localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
-    complaints_webapp_url = f"{WEB_APP_URL}?page=complaints&lang={lang}"
+    complaints_webapp_url = f"{WEB_APP_URL}complaints.html?lang={lang}"
 
     if user and user[0] and user[1] in ["approved", "pending"]:
         fio, status = user[0], user[1]
@@ -145,7 +145,6 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     else:
         text = t["start"]
 
-    # И создание персонажа, и жалобы открываются как Web App (мини-приложения)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟢 Создание персонажа", web_app=WebAppInfo(url=localized_webapp_url))],
         [InlineKeyboardButton(text="🔴 Жалобы", web_app=WebAppInfo(url=complaints_webapp_url))],
