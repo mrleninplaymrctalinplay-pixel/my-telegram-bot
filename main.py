@@ -3,7 +3,7 @@ import logging
 import sqlite3
 
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import Command
+from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -11,264 +11,311 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, C
 
 # ==================== НАСТРОЙКИ ====================
 BOT_TOKEN = "8996747968:AAHdVCmUIASZNhaUj-qp1m-JsRrqIq8udII"
-ADMIN_CHAT_ID = -1003913257980
-# ====================================================
+ADMIN_CHAT_ID = 644112527
 
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
+# ==================== БАЗА ДАННЫХ ====================
+conn = sqlite3.connect("users.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    username TEXT,
+    fio TEXT,
+    gender TEXT,
+    birth_date TEXT,
+    citizenship TEXT,
+    fraction TEXT,
+    bio TEXT,
+    social_status TEXT,
+    photo TEXT,
+    signature TEXT,
+    document_type TEXT,
+    issue_reason TEXT,
+    delivery_type TEXT,
+    status TEXT
+)
+""")
+conn.commit()
+
+# ==================== СОСТОЯНИЯ (12 шагов) ====================
+class Registration(StatesGroup):
+    step1_fio = State()
+    step2_gender = State()
+    step3_birth_date = State()
+    step4_citizenship = State()
+    step5_fraction = State()
+    step6_bio = State()
+    step7_social_status = State()
+    step8_photo = State()
+    step9_signature = State()
+    step10_doc_type = State()
+    step11_issue_reason = State()
+    step12_delivery_type = State()
+
 router = Router()
-dp.include_router(router)
 
-# ---------------- База данных SQLite ----------------
-def init_db():
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS passport_apps (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            full_name TEXT,
-            birth_data TEXT,
-            nationality TEXT,
-            birth_place_params TEXT,
-            marks TEXT,
-            character_trait TEXT,
-            marital_status TEXT,
-            residence TEXT,
-            blood_type TEXT,
-            diseases TEXT,
-            photo_id TEXT,
-            signature TEXT,
-            status TEXT DEFAULT 'pending'
-        )
-    """)
+# ==================== СПРАВКА И КОМАНДЫ ====================
+
+HELP_TEXT = (
+    "📖 **Список доступных команд:**\n\n"
+    "• `/start` — Запустить бота и посмотреть текущий статус персонажа\n"
+    "• `/help` — Показать эту справку по командам\n"
+    "• `/delete` или `/reset` — Удалить текущего персонажа и сбросить анкету для создания нового"
+)
+
+@router.message(Command("help"))
+async def cmd_help(message: Message):
+    await message.answer(HELP_TEXT)
+
+@router.callback_query(F.data == "show_help")
+async def process_show_help(callback: CallbackQuery):
+    await callback.message.answer(HELP_TEXT)
+
+# ==================== ОБРАБОТЧИКИ СБРОСА И УДАЛЕНИЯ ====================
+
+@router.message(Command("delete"))
+@router.message(Command("reset"))
+async def cmd_delete_character(message: Message, state: FSMContext):
+    await state.clear()
+    cursor.execute("DELETE FROM users WHERE user_id = ?", (message.from_user.id,))
     conn.commit()
-    conn.close()
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
+    ]])
+    await message.answer(
+        "🗑 Ваш РП-персонаж был успешно удалён!\n\n"
+        "Вы можете зарегистрировать нового персонажа с чистого листа.",
+        reply_markup=kb
+    )
 
-def save_application(data: dict):
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
+@router.callback_query(F.data == "user_delete_self")
+async def process_user_delete_self(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    cursor.execute("DELETE FROM users WHERE user_id = ?", (callback.from_user.id,))
+    conn.commit()
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
+    ]])
+    await callback.message.edit_text(
+        "🗑 Ваш РП-персонаж успешно удалён.\n\n"
+        "Вы можете начать регистрацию заново:",
+        reply_markup=kb
+    )
+
+# ==================== СТАРТ И АНКЕТА ====================
+
+@router.message(CommandStart())
+async def cmd_start(message: Message, state: FSMContext):
+    user_id = message.from_user.id
+    cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
+
+    if user:
+        fio, status = user
+        if status == "approved":
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")],
+                [InlineKeyboardButton(text="🗑 Удалить персонажа", callback_data="user_delete_self")]
+            ])
+            await message.answer(
+                f"✅ У вас уже есть одобренный персонаж: **{fio}**.\n\n"
+                f"Если вы хотите сбросить текущего персонажа и зарегистрировать нового, нажмите кнопку ниже:",
+                reply_markup=kb
+            )
+            return
+        elif status == "pending":
+            kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")
+            ]])
+            await message.answer(
+                "⏳ Ваша анкета находится на рассмотрении у администратора. Ожидайте решения.",
+                reply_markup=kb
+            )
+            return
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")],
+        [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")]
+    ])
+    
+    await message.answer(
+        "👋 Добро пожаловать в бота регистрации канадского паспорта!\n\n"
+        f"{HELP_TEXT}\n\n"
+        "Нажмите кнопку **«🚀 Начать регистрацию»** ниже, чтобы перейти к заполнению анкеты из 12 шагов:",
+        reply_markup=kb
+    )
+
+@router.callback_query(F.data == "start_registration")
+async def start_registration_callback(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Registration.step1_fio)
+    await callback.message.answer(" Начинаем регистрацию канадского паспорта.\n\n**Шаг 1/12:** Введите Ф.И.О вашего РП-персонажа:")
+
+@router.message(Registration.step1_fio)
+async def process_step1(message: Message, state: FSMContext):
+    await state.update_data(fio=message.text)
+    await state.set_state(Registration.step2_gender)
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Мужской", callback_data="gender_m")],
+        [InlineKeyboardButton(text="Женский", callback_data="gender_f")]
+    ])
+    await message.answer("**Шаг 2/12:** Выберите пол персонажа:", reply_markup=kb)
+
+@router.callback_query(Registration.step2_gender)
+async def process_step2(callback: CallbackQuery, state: FSMContext):
+    gender = "Мужской" if callback.data == "gender_m" else "Женский"
+    await state.update_data(gender=gender)
+    await callback.message.edit_text(f"Пол: {gender}")
+    
+    await state.set_state(Registration.step3_birth_date)
+    await callback.message.answer("**Шаг 3/12:** Укажите дату рождения (например, 15.05.1995):")
+
+@router.message(Registration.step3_birth_date)
+async def process_step3(message: Message, state: FSMContext):
+    await state.update_data(birth_date=message.text)
+    await state.set_state(Registration.step4_citizenship)
+    await message.answer("**Шаг 4/12:** Укажите гражданство:")
+
+@router.message(Registration.step4_citizenship)
+async def process_step4(message: Message, state: FSMContext):
+    await state.update_data(citizenship=message.text)
+    await state.set_state(Registration.step5_fraction)
+    await message.answer("**Шаг 5/12:** Укажите фракцию/группировку:")
+
+@router.message(Registration.step5_fraction)
+async def process_step5(message: Message, state: FSMContext):
+    await state.update_data(fraction=message.text)
+    await state.set_state(Registration.step6_bio)
+    await message.answer("**Шаг 6/12:** Напишите краткую биографию персонажа:")
+
+@router.message(Registration.step6_bio)
+async def process_step6(message: Message, state: FSMContext):
+    await state.update_data(bio=message.text)
+    await state.set_state(Registration.step7_social_status)
+    await message.answer("**Шаг 7/12:** Укажите социальный статус:")
+
+@router.message(Registration.step7_social_status)
+async def process_step7(message: Message, state: FSMContext):
+    await state.update_data(social_status=message.text)
+    await state.set_state(Registration.step8_photo)
+    await message.answer("**Шаг 8/12:** Отправьте ссылку на фото персонажа или опишите его внешность:")
+
+@router.message(Registration.step8_photo)
+async def process_step8(message: Message, state: FSMContext):
+    await state.update_data(photo=message.text)
+    await state.set_state(Registration.step9_signature)
+    await message.answer("**Шаг 9/12:** Введите личную подпись персонажа:")
+
+@router.message(Registration.step9_signature)
+async def process_step9(message: Message, state: FSMContext):
+    await state.update_data(signature=message.text)
+    await state.set_state(Registration.step10_doc_type)
+    await message.answer("**Шаг 10/12:** Укажите тип документа (например, Паспорт Канады):")
+
+@router.message(Registration.step10_doc_type)
+async def process_step10(message: Message, state: FSMContext):
+    await state.update_data(doc_type=message.text)
+    await state.set_state(Registration.step11_issue_reason)
+    await message.answer("**Шаг 11/12:** Укажите причину выдачи (Первичное получение / Замена):")
+
+@router.message(Registration.step11_issue_reason)
+async def process_step11(message: Message, state: FSMContext):
+    await state.update_data(issue_reason=message.text)
+    await state.set_state(Registration.step12_delivery_type)
+    await message.answer("**Шаг 12/12:** Укажите способ получения (Лично в МФЦ / Почта):")
+
+@router.message(Registration.step12_delivery_type)
+async def process_step12(message: Message, state: FSMContext, bot: Bot):
+    await state.update_data(delivery_type=message.text)
+    data = await state.get_data()
+    
+    user_id = message.from_user.id
+    username = message.from_user.username or "нет"
+
     cursor.execute("""
-        INSERT OR REPLACE INTO passport_apps 
-        (user_id, username, full_name, birth_data, nationality, birth_place_params, marks, character_trait, marital_status, residence, blood_type, diseases, photo_id, signature, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
-        data['user_id'],
-        data['username'],
-        data['full_name'],
-        data['birth_data'],
-        data['nationality'],
-        data['birth_place_params'],
-        data['marks'],
-        data['character_trait'],
-        data['marital_status'],
-        data['residence'],
-        data['blood_type'],
-        data['diseases'],
-        data['photo_id'],
-        data['signature']
+        user_id, username, data["fio"], data["gender"], data["birth_date"],
+        data["citizenship"], data["fraction"], data["bio"], data["social_status"],
+        data["photo"], data["signature"], data["doc_type"], data["issue_reason"],
+        data["delivery_type"], "pending"
     ))
     conn.commit()
-    conn.close()
 
-def update_status(user_id: int, status: str):
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("UPDATE passport_apps SET status = ? WHERE user_id = ?", (status, user_id))
-    conn.commit()
-    conn.close()
-
-# ---------------- FSM Состояния ----------------
-class PassportForm(StatesGroup):
-    full_name = State()
-    birth_data = State()
-    nationality = State()
-    birth_place_params = State()
-    marks = State()
-    character_trait = State()
-    marital_status = State()
-    residence = State()
-    blood_type = State()
-    diseases = State()
-    photo_id = State()
-    signature = State()
-
-# ---------------- Хэндлеры ----------------
-@router.message(Command("start"))
-async def cmd_start(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer("🇨🇦 <b>Заявление на получение канадского паспорта (МФЦ)</b>\n\nШаг 1/12: Введите Ф.И.О вашего РП-персонажа:", parse_mode="HTML")
-    await state.set_state(PassportForm.full_name)
-
-@router.message(PassportForm.full_name)
-async def process_full_name(message: Message, state: FSMContext):
-    await state.update_data(full_name=message.text)
-    await message.answer("Шаг 2/12: Укажите дату рождения в формате «ДД-ММ-ГГ» и пол персонажа:")
-    await state.set_state(PassportForm.birth_data)
-
-@router.message(PassportForm.birth_data)
-async def process_birth_data(message: Message, state: FSMContext):
-    await state.update_data(birth_data=message.text)
-    await message.answer("Шаг 3/12: Укажите национальность и происхождение персонажа:")
-    await state.set_state(PassportForm.nationality)
-
-@router.message(PassportForm.nationality)
-async def process_nationality(message: Message, state: FSMContext):
-    await state.update_data(nationality=message.text)
-    await message.answer("Шаг 4/12: Укажите место рождения (город/страна), а также рост, вес и цвет глаз:")
-    await state.set_state(PassportForm.birth_place_params)
-
-@router.message(PassportForm.birth_place_params)
-async def process_birth_place_params(message: Message, state: FSMContext):
-    await state.update_data(birth_place_params=message.text)
-    await message.answer("Шаг 5/12: Особые приметы (татуировки, шрамы, дефекты речи, если есть):")
-    await state.set_state(PassportForm.marks)
-
-@router.message(PassportForm.marks)
-async def process_marks(message: Message, state: FSMContext):
-    await state.update_data(marks=message.text)
-    await message.answer("Шаг 6/12: Краткий характер персонажа (спокойный, агрессивный, хитрый и т.д.):")
-    await state.set_state(PassportForm.character_trait)
-
-@router.message(PassportForm.character_trait)
-async def process_character_trait(message: Message, state: FSMContext):
-    await state.update_data(character_trait=message.text)
-    await message.answer("Шаг 7/12: Семейное положение («Холост» / «Замужем» / «В браке с...»):")
-    await state.set_state(PassportForm.marital_status)
-
-@router.message(PassportForm.marital_status)
-async def process_marital_status(message: Message, state: FSMContext):
-    await state.update_data(marital_status=message.text)
-    await message.answer("Шаг 8/12: Текущее место проживания в городе (если пока нет дома, пишите: Отель):")
-    await state.set_state(PassportForm.residence)
-
-@router.message(PassportForm.residence)
-async def process_residence(message: Message, state: FSMContext):
-    await state.update_data(residence=message.text)
-    await message.answer("Шаг 9/12: Группа крови и резус-фактор вашего персонажа:")
-    await state.set_state(PassportForm.blood_type)
-
-@router.message(PassportForm.blood_type)
-async def process_blood_type(message: Message, state: FSMContext):
-    await state.update_data(blood_type=message.text)
-    await message.answer("Шаг 10/12: Наличие хронических заболеваний или аллергий (для медиков):")
-    await state.set_state(PassportForm.diseases)
-
-@router.message(PassportForm.diseases)
-async def process_diseases(message: Message, state: FSMContext):
-    await state.update_data(diseases=message.text)
-    await message.answer("Шаг 11/12: Отправьте фото персонажа на белом фоне (крупным планом, без масок):")
-    await state.set_state(PassportForm.photo_id)
-
-@router.message(PassportForm.photo_id, F.photo)
-async def process_photo_id(message: Message, state: FSMContext):
-    photo_file_id = message.photo[-1].file_id
-    await state.update_data(photo_id=photo_file_id)
-    await message.answer("Шаг 12/12: Четкое фото подписи или напишите подпись текстом в кавычках:")
-    await state.set_state(PassportForm.signature)
-
-@router.message(PassportForm.photo_id)
-async def process_photo_id_invalid(message: Message):
-    await message.answer("⚠️ Пожалуйста, отправьте именно фотографию персонажа!")
-
-@router.message(PassportForm.signature)
-async def process_signature(message: Message, state: FSMContext):
-    if message.photo:
-        sig_val = f"PHOTO:{message.photo[-1].file_id}"
-    else:
-        sig_val = message.text
-
-    await state.update_data(signature=sig_val)
-    user_data = await state.get_data()
-    
-    user_data['user_id'] = message.from_user.id
-    user_data['username'] = message.from_user.username or "Отсутствует"
-
-    save_application(user_data)
-    await state.clear()
-
-    await message.answer("📋 Ваша заявка на оформление паспорта отправлена в МФЦ!")
-
-    card_text = (
-        f"🇨🇦 <b>Заявление на Канадский Паспорт</b>\n\n"
-        f"👤 <b>Игрок:</b> @{user_data['username']} (ID: <code>{user_data['user_id']}</code>)\n"
-        f"🏷 <b>Ф.И.О:</b> {user_data['full_name']}\n"
-        f"🎂 <b>Дата рождения и пол:</b> {user_data['birth_data']}\n"
-        f"🌍 <b>Национальность:</b> {user_data['nationality']}\n"
-        f"📍 <b>Место рождения/рост/вес/глаза:</b> {user_data['birth_place_params']}\n"
-        f"🔍 <b>Особые приметы:</b> {user_data['marks']}\n"
-        f"🧠 <b>Характер:</b> {user_data['character_trait']}\n"
-        f"💍 <b>Семейное положение:</b> {user_data['marital_status']}\n"
-        f"🏠 <b>Проживание:</b> {user_data['residence']}\n"
-        f"🩸 <b>Группа крови:</b> {user_data['blood_type']}\n"
-        f"🏥 <b>Заболевания/Аллергии:</b> {user_data['diseases']}\n"
+    admin_text = (
+        f"📋 **Новая анкета (12/12):**\n"
+        f"👤 От: @{username} (ID: {user_id})\n\n"
+        f"1. ФИО: {data['fio']}\n"
+        f"2. Пол: {data['gender']}\n"
+        f"3. Дата рождения: {data['birth_date']}\n"
+        f"4. Гражданство: {data['citizenship']}\n"
+        f"5. Фракция: {data['fraction']}\n"
+        f"6. Биография: {data['bio']}\n"
+        f"7. Соц. статус: {data['social_status']}\n"
+        f"8. Фото: {data['photo']}\n"
+        f"9. Подпись: {data['signature']}\n"
+        f"10. Тип документа: {data['doc_type']}\n"
+        f"11. Причина: {data['issue_reason']}\n"
+        f"12. Доставка: {data['delivery_type']}"
     )
 
-    if not sig_val.startswith("PHOTO:"):
-        card_text += f"✍️ <b>Подпись:</b> {sig_val}\n"
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✅ Одобрить", callback_data=f"approve_{user_id}"),
+        InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_{user_id}")
+    ]])
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="✅ Одобрить паспорт", callback_data=f"approve_{user_data['user_id']}"),
-            InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_{user_data['user_id']}")
-        ]
-    ])
+    await bot.send_message(ADMIN_CHAT_ID, admin_text, reply_markup=kb)
+    await message.answer("📋 Ваша анкета (12 шагов) отправлена на проверку администраторам!")
+    await state.clear()
 
-    await bot.send_photo(
-        chat_id=ADMIN_CHAT_ID,
-        photo=user_data['photo_id'],
-        caption=card_text,
-        parse_mode="HTML",
-        reply_markup=keyboard
-    )
-
-    if sig_val.startswith("PHOTO:"):
-        photo_sig_id = sig_val.replace("PHOTO:", "")
-        await bot.send_photo(
-            chat_id=ADMIN_CHAT_ID,
-            photo=photo_sig_id,
-            caption=f"✍️ Подпись персонажа @{user_data['username']}"
-        )
+# ==================== ДЕЙСТВИЯ АДМИНИСТРАТОРА ====================
 
 @router.callback_query(F.data.startswith("approve_"))
-async def approve_character(callback: CallbackQuery):
-    user_id = int(callback.data.split("_")[1])
-    update_status(user_id, "approved")
+async def approve_user(callback: CallbackQuery, bot: Bot):
+    target_id = int(callback.data.split("_")[1])
+    cursor.execute("UPDATE users SET status = 'approved' WHERE user_id = ?", (target_id,))
+    conn.commit()
     
-    await callback.message.edit_caption(
-        caption=f"{callback.message.caption}\n\n🟢 <b>ОДОБРЕНО</b> сотрудником МФЦ @{callback.from_user.username or callback.from_user.first_name}",
-        parse_mode="HTML"
-    )
-    
-    try:
-        await bot.send_message(user_id, "🎉 Ваш канадский паспорт успешно оформлен МФЦ!")
-    except Exception:
-        pass
-        
-    await callback.answer("Заявка одобрена")
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🗑 Удалить карту", callback_data=f"admin_delete_{target_id}")
+    ]])
+
+    await bot.send_message(target_id, "🎉 Ваша анкета персонажа успешно одобрена администрацией!")
+    await callback.message.edit_text(callback.message.text + "\n\n✅ **ОДОБРЕНО**", reply_markup=kb)
 
 @router.callback_query(F.data.startswith("reject_"))
-async def reject_character(callback: CallbackQuery):
-    user_id = int(callback.data.split("_")[1])
-    update_status(user_id, "rejected")
+async def reject_user(callback: CallbackQuery, bot: Bot):
+    target_id = int(callback.data.split("_")[1])
+    cursor.execute("UPDATE users SET status = 'rejected' WHERE user_id = ?", (target_id,))
+    conn.commit()
     
-    await callback.message.edit_caption(
-        caption=f"{callback.message.caption}\n\n🔴 <b>ОТКЛОНЕНО</b> сотрудником МФЦ @{callback.from_user.username or callback.from_user.first_name}",
-        parse_mode="HTML"
-    )
-    
-    try:
-        await bot.send_message(user_id, "❌ Ваша заявка на оформление паспорта была отклонена МФЦ.")
-    except Exception:
-        pass
-        
-    await callback.answer("Заявка отклонена")
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🗑 Удалить из базы", callback_data=f"admin_delete_{target_id}")
+    ]])
 
-# ---------------- Запуск ----------------
+    await bot.send_message(target_id, "❌ Ваша анкета была отклонена администрацией.")
+    await callback.message.edit_text(callback.message.text + "\n\n❌ **ОТКЛОНЕНО**", reply_markup=kb)
+
+@router.callback_query(F.data.startswith("admin_delete_"))
+async def admin_delete_user(callback: CallbackQuery, bot: Bot):
+    target_id = int(callback.data.split("_")[2])
+    cursor.execute("DELETE FROM users WHERE user_id = ?", (target_id,))
+    conn.commit()
+
+    await bot.send_message(target_id, "ℹ️ Ваш персонаж был удалён администратором. Вы можете создать нового через /start.")
+    await callback.message.edit_text(callback.message.text + "\n\n🗑 **ПЕРСОНАЖ УДАЛЕН АДМИНИСТРАТОРОМ**")
+
+# ==================== ЗАПУСК ====================
 async def main():
-    init_db()
+    bot = Bot(token=BOT_TOKEN)
+    dp = Dispatcher(storage=MemoryStorage())
+    dp.include_router(router)
+    
     print("Бот успешно запущен!")
     await dp.start_polling(bot)
 
