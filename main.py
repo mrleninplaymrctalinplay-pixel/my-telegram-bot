@@ -17,16 +17,11 @@ from aiogram.types import (
 
 # ==================== НАСТРОЙКИ ====================
 BOT_TOKEN = "8996747968:AAHdVCmUIASZNhaUj-qp1m-JsRrqIq8udII"
-
-# ID администратора или ID группы (если группа, то с минусом, например: -1001234567890)
 ADMIN_CHAT_ID = -1003913257980
-
-# Ваша ссылка на GitHub Pages из раздела Settings -> Pages
 WEB_APP_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/"
 
 logging.basicConfig(level=logging.INFO)
 
-# ИНИЦИАЛИЗАЦИЯ РОУТЕРА (ВАЖНО: Должна быть в начале)
 router = Router()
 
 # ==================== БАЗА ДАННЫХ ====================
@@ -42,13 +37,20 @@ CREATE TABLE IF NOT EXISTS users (
     birth_date TEXT,
     gender TEXT,
     bio TEXT,
+    signature TEXT,
     status TEXT,
     language TEXT DEFAULT 'en'
 )
 """)
 conn.commit()
 
-# Проверяем наличие колонки language для предотвращения ошибок
+# Автоматическое добавление новых колонок при обновлении
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN signature TEXT")
+    conn.commit()
+except sqlite3.OperationalError:
+    pass
+
 try:
     cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'")
     conn.commit()
@@ -183,6 +185,7 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     t = TEXTS[lang]
     cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
+    localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
 
     if user and user[1] in ["approved", "pending"]:
         fio, status = user[0], user[1]
@@ -197,7 +200,7 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     else:
         text = t["start"]
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=WEB_APP_URL))],
+            [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))],
             [InlineKeyboardButton(text=t["help_btn"], callback_data="show_help")],
             [InlineKeyboardButton(text=t["lang_btn"], callback_data="change_language")]
         ])
@@ -243,16 +246,17 @@ async def show_profile_handler(event: Message | CallbackQuery):
     user_id = event.from_user.id
     lang = get_user_lang(user_id)
     t = TEXTS[lang]
+    localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
 
-    cursor.execute("SELECT roblox_nick, fio, birth_date, gender, bio, status FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT roblox_nick, fio, birth_date, gender, bio, signature, status FROM users WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
 
     if not user or not user[1]:
         text = t["no_char"]
-        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=WEB_APP_URL))]])
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))]])
     else:
-        status_key = f"status_{user[5]}"
-        status_str = t.get(status_key, user[5])
+        status_key = f"status_{user[6]}"
+        status_str = t.get(status_key, user[6])
 
         text = (
             f"👤 **Canadian ID Character Profile**\n"
@@ -261,7 +265,8 @@ async def show_profile_handler(event: Message | CallbackQuery):
             f"📛 **Full Name:** {user[1]}\n"
             f"📅 **Date of Birth:** {user[2]}\n"
             f"⚧ **Gender:** {user[3]}\n"
-            f"📖 **Biography:** {user[4]}"
+            f"📖 **Biography:** {user[4]}\n"
+            f"✍️ **Signature:** `{user[5]}`"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")],
@@ -282,12 +287,13 @@ async def cmd_delete_character(event: Message | CallbackQuery, state: FSMContext
     user_id = event.from_user.id
     lang = get_user_lang(user_id)
     t = TEXTS[lang]
+    localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
 
     await state.clear()
-    cursor.execute("UPDATE users SET roblox_nick=NULL, fio=NULL, birth_date=NULL, gender=NULL, bio=NULL, status='none' WHERE user_id = ?", (user_id,))
+    cursor.execute("UPDATE users SET roblox_nick=NULL, fio=NULL, birth_date=NULL, gender=NULL, bio=NULL, signature=NULL, status='none' WHERE user_id = ?", (user_id,))
     conn.commit()
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=WEB_APP_URL))]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))]])
     
     if isinstance(event, Message):
         await event.answer(t["deleted"], reply_markup=kb)
@@ -311,23 +317,25 @@ async def handle_web_app_data(message: Message, bot: Bot):
         dob = data.get("dob", "N/A")
         gender = data.get("gender", "N/A")
         bio = data.get("bio", "N/A")
+        signature = data.get("signature", "N/A")
 
         cursor.execute("""
-        UPDATE users SET username=?, roblox_nick=?, fio=?, birth_date=?, gender=?, bio=?, status='pending'
+        UPDATE users SET username=?, roblox_nick=?, fio=?, birth_date=?, gender=?, bio=?, signature=?, status='pending'
         WHERE user_id=?
-        """, (username, roblox_nick, full_name, dob, gender, bio, user_id))
+        """, (username, roblox_nick, full_name, dob, gender, bio, signature, user_id))
         conn.commit()
 
-        # Уведомление администратору
+        # Отправка анкеты с подписью в группу админов
         admin_text = (
-            f"📋 **New Registration Submitted via Web App:**\n"
+            f"📋 **New Canadian Registration:**\n"
             f"👤 From: @{username} (ID: `{user_id}`)\n"
             f"🌐 Lang: `{lang}`\n\n"
             f"🎮 **Roblox Username:** {roblox_nick}\n"
             f"📛 **Full Name:** {full_name}\n"
             f"📅 **Date of Birth:** {dob}\n"
             f"⚧ **Gender:** {gender}\n"
-            f"📖 **Biography:** {bio}"
+            f"📖 **Biography:** {bio}\n"
+            f"✍️ **Official Signature:** `{signature}`"
         )
 
         kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -348,7 +356,11 @@ async def approve_user(callback: CallbackQuery, bot: Bot):
     cursor.execute("UPDATE users SET status = 'approved' WHERE user_id = ?", (target_id,))
     conn.commit()
 
-    await bot.send_message(target_id, "🎉 Your Canadian character registration has been approved!")
+    try:
+        await bot.send_message(target_id, "🎉 Your Canadian character registration has been approved!")
+    except Exception:
+        pass
+
     await callback.message.edit_text(callback.message.text + "\n\n✅ **APPROVED**")
 
 @router.callback_query(F.data.startswith("reject_"))
@@ -357,7 +369,11 @@ async def reject_user(callback: CallbackQuery, bot: Bot):
     cursor.execute("UPDATE users SET status = 'rejected' WHERE user_id = ?", (target_id,))
     conn.commit()
 
-    await bot.send_message(target_id, "❌ Your character registration application was rejected.")
+    try:
+        await bot.send_message(target_id, "❌ Your character registration application was rejected.")
+    except Exception:
+        pass
+
     await callback.message.edit_text(callback.message.text + "\n\n❌ **REJECTED**")
 
 # ==================== ЗАПУСК ====================
