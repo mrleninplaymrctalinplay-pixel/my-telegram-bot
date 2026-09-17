@@ -2,8 +2,10 @@ import asyncio
 import io
 import json
 import logging
+import os
 import sqlite3
 
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
@@ -51,7 +53,7 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# Автоматическое обновление структуры БД
+# Автоматическое добавление отсутствующих колонок
 for col_def in ["skin_url TEXT", "signature TEXT", "language TEXT DEFAULT 'en'"]:
     try:
         cursor.execute(f"ALTER TABLE users ADD COLUMN {col_def}")
@@ -430,11 +432,28 @@ async def process_reject_reason(message: Message, state: FSMContext, bot: Bot):
     await message.reply("✅ Причина отправлена игроку.")
     await state.clear()
 
-# ==================== ЗАПУСК ====================
+# ==================== ЗАПУСК ВЕБ-СЕРВЕРА И БОТА ====================
+
+async def handle_health_check(request):
+    return web.Response(text="Bot is running!")
+
 async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
+
+    # Веб-сервер для удержания активного статуса на Render
+    app = web.Application()
+    app.router.add_get("/", handle_health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    logging.info(f"Health check server running on port {port}")
+
+    # Запуск бота
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
