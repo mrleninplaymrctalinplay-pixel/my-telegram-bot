@@ -1,3 +1,278 @@
+import asyncio
+import json
+import logging
+import sqlite3
+
+from aiogram import Bot, Dispatcher, F, Router
+from aiogram.filters import Command, CommandStart
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    WebAppInfo,
+)
+
+# ==================== НАСТРОЙКИ ====================
+BOT_TOKEN = "8996747968:AAHdVCmUIASZNhaUj-qp1m-JsRrqIq8udII"
+
+# ID администратора или ID группы (если группа, то с минусом, например: -1001234567890)
+ADMIN_CHAT_ID = 644112527
+
+# Ваша ссылка на GitHub Pages из раздела Settings -> Pages
+WEB_APP_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/"
+
+logging.basicConfig(level=logging.INFO)
+
+# ИНИЦИАЛИЗАЦИЯ РОУТЕРА (ВАЖНО: Должна быть в начале)
+router = Router()
+
+# ==================== БАЗА ДАННЫХ ====================
+conn = sqlite3.connect("users.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY,
+    username TEXT,
+    roblox_nick TEXT,
+    fio TEXT,
+    birth_date TEXT,
+    gender TEXT,
+    bio TEXT,
+    status TEXT,
+    language TEXT DEFAULT 'en'
+)
+""")
+conn.commit()
+
+# Проверяем наличие колонки language для предотвращения ошибок
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'")
+    conn.commit()
+except sqlite3.OperationalError:
+    pass
+
+# ==================== ТЕКСТЫ И ЛОКАЛИЗАЦИЯ ====================
+
+TEXTS = {
+    "ru": {
+        "welcome_lang": "👋 Пожалуйста, выберите язык / Please select your language:",
+        "start": "🇨🇦 **Добро пожаловать в портал регистрации граждан Канады!**\n\nНажмите кнопку ниже, чтобы заполнить анкету через мини-приложение:",
+        "form_btn": "📝 Заполнить анкету",
+        "help_btn": "ℹ️ Помощь / Команды",
+        "profile_btn": "👤 Профиль",
+        "delete_btn": "🗑 Удалить персонажа",
+        "lang_btn": "🌐 Сменить язык",
+        "active_char": "✅ У вас есть активный персонаж: **{fio}**.",
+        "pending_char": "⏳ Ваша анкета для **{fio}** находится на проверке.",
+        "no_char": "❌ У вас пока нет зарегистрированного персонажа.",
+        "deleted": "🗑 Ваш профиль персонажа успешно удален!",
+        "submitted": "🎉 **Анкета успешно отправлена!**\n\nВаша заявка передана администраторам на проверку.",
+        "help": "📖 **Список команд:**\n\n• `/start` — Главное меню\n• `/help` — Справка\n• `/profile` — Профиль персонажа\n• `/delete` — Удалить персонажа и пройти регистрацию заново",
+        "status_approved": "✅ Одобрено",
+        "status_pending": "⏳ На проверке",
+        "status_rejected": "❌ Отклонено"
+    },
+    "uk": {
+        "welcome_lang": "👋 Будь ласка, оберіть мову / Please select your language:",
+        "start": "🇨🇦 **Ласкаво просимо до порталу реєстрації громадян Канади!**\n\nНатисніть кнопку нижче, щоб заповнити анкету через міні-додаток:",
+        "form_btn": "📝 Заповнити анкету",
+        "help_btn": "ℹ️ Допомога / Команди",
+        "profile_btn": "👤 Профіль",
+        "delete_btn": "🗑 Видалити персонажа",
+        "lang_btn": "🌐 Змінити мову",
+        "active_char": "✅ У вас є активний персонаж: **{fio}**.",
+        "pending_char": "⏳ Ваша анкета для **{fio}** перебуває на перевірці.",
+        "no_char": "❌ У вас ще немає зареєстрованого персонажа.",
+        "deleted": "🗑 Ваш профіль персонажа успішно видалено!",
+        "submitted": "🎉 **Анкету успішно надіслано!**\n\nВашу заявку передано адміністраторам на перевірку.",
+        "help": "📖 **Список команд:**\n\n• `/start` — Головне меню\n• `/help` — Довідка\n• `/profile` — Профіль персонажа\n• `/delete` — Видалити персонажа та пройти реєстрацію наново",
+        "status_approved": "✅ Схвалено",
+        "status_pending": "⏳ На перевірці",
+        "status_rejected": "❌ Відхилено"
+    },
+    "en": {
+        "welcome_lang": "👋 Please select your language:",
+        "start": "🇨🇦 **Welcome to the Canadian Passport & Citizen Registration Portal!**\n\nClick the button below to fill out your character registration form via the Web Application:",
+        "form_btn": "📝 Fill Registration Form",
+        "help_btn": "ℹ️ Help / Commands",
+        "profile_btn": "👤 View Profile",
+        "delete_btn": "🗑 Delete Character",
+        "lang_btn": "🌐 Change Language",
+        "active_char": "✅ You have an active character: **{fio}**.",
+        "pending_char": "⏳ Your registration for **{fio}** is under review.",
+        "no_char": "❌ You don't have a registered character yet.",
+        "deleted": "🗑 Your character profile has been deleted!",
+        "submitted": "🎉 **Registration Submitted Successfully!**\n\nYour application has been sent to administrators for verification.",
+        "help": "📖 **Command List:**\n\n• `/start` — Main Menu\n• `/help` — Help\n• `/profile` — View Profile\n• `/delete` — Delete character & re-register",
+        "status_approved": "✅ Approved",
+        "status_pending": "⏳ Under Review",
+        "status_rejected": "❌ Rejected"
+    },
+    "kk": {
+        "welcome_lang": "👋 Тілді таңдаңыз / Please select your language:",
+        "start": "🇨🇦 **Канада азаматтарын тіркеу порталына кош келдіңіз!**\n\nШағын қолданба арқылы сауалнаманы толтыру үшін төмендегі түймені басыңыз:",
+        "form_btn": "📝 Сауалнаманы толтыру",
+        "help_btn": "ℹ️ Көмек / Пәрмендер",
+        "profile_btn": "👤 Профиль",
+        "delete_btn": "🗑 Кейіпкерді өшіру",
+        "lang_btn": "🌐 Тілді ауыстыру",
+        "active_char": "✅ Сізде белсенді кейіпкер бар: **{fio}**.",
+        "pending_char": "⏳ **{fio}** үшін сауалнамаңыз тексерілуде.",
+        "no_char": "❌ Сізде әлі тіркелген кейіпкер жоқ.",
+        "deleted": "🗑 Кейіпкер профилі сәтті өшірілді!",
+        "submitted": "🎉 **Сауалнама сәтті жіберілді!**\n\nӨтінішіңіз әкімшілерге тексеруге жіберілді.",
+        "help": "📖 **Пәрмендер тізімі:**\n\n• `/start` — Негізгі мәзір\n• `/help` — Анықтама\n• `/profile` — Кейіпкер профилі\n• `/delete` — Кейіпкерді өшіру және қайта тіркелу",
+        "status_approved": "✅ Мақұлданды",
+        "status_pending": "⏳ Тексерілуде",
+        "status_rejected": "❌ Қабылданбады"
+    }
+}
+
+def get_user_lang(user_id: int) -> str:
+    cursor.execute("SELECT language FROM users WHERE user_id = ?", (user_id,))
+    res = cursor.fetchone()
+    return res[0] if res and res[0] in TEXTS else "en"
+
+def get_lang_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🇷🇺 Русский", callback_data="set_lang_ru"),
+            InlineKeyboardButton(text="🇺🇦 Українська", callback_data="set_lang_uk")
+        ],
+        [
+            InlineKeyboardButton(text="🇬🇧 English", callback_data="set_lang_en"),
+            InlineKeyboardButton(text="🇰🇿 Қазақша", callback_data="set_lang_kk")
+        ]
+    ])
+
+# ==================== ВЫБОР ЯЗЫКА ====================
+
+@router.message(Command("language"))
+@router.callback_query(F.data == "change_language")
+async def select_language(event: Message | CallbackQuery):
+    text = "🌐 **Select Language / Выберите язык / Оберіть мову / Тілді таңдаңыз:**"
+    kb = get_lang_keyboard()
+
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
+    else:
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+
+@router.callback_query(F.data.startswith("set_lang_"))
+async def set_language(callback: CallbackQuery, state: FSMContext):
+    lang_code = callback.data.split("_")[2]
+    user_id = callback.from_user.id
+
+    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+    if cursor.fetchone():
+        cursor.execute("UPDATE users SET language = ? WHERE user_id = ?", (lang_code, user_id))
+    else:
+        cursor.execute("INSERT INTO users (user_id, language, status) VALUES (?, ?, 'none')", (user_id, lang_code))
+    conn.commit()
+
+    await callback.answer("Language updated!")
+    await show_main_menu(callback, user_id, lang_code)
+
+# ==================== ГЛАВНОЕ МЕНЮ И СТАРТ ====================
+
+async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str):
+    t = TEXTS[lang]
+    cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
+
+    if user and user[1] in ["approved", "pending"]:
+        fio, status = user[0], user[1]
+        text = t["active_char"].format(fio=fio) if status == "approved" else t["pending_char"].format(fio=fio)
+
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=t["profile_btn"], callback_data="show_profile")],
+            [InlineKeyboardButton(text=t["help_btn"], callback_data="show_help")],
+            [InlineKeyboardButton(text=t["lang_btn"], callback_data="change_language")],
+            [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")]
+        ])
+    else:
+        text = t["start"]
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=WEB_APP_URL))],
+            [InlineKeyboardButton(text=t["help_btn"], callback_data="show_help")],
+            [InlineKeyboardButton(text=t["lang_btn"], callback_data="change_language")]
+        ])
+
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
+    else:
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+
+@router.message(CommandStart())
+async def cmd_start(message: Message):
+    user_id = message.from_user.id
+    cursor.execute("SELECT language FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+
+    if not row or not row[0]:
+        await message.answer(TEXTS["en"]["welcome_lang"], reply_markup=get_lang_keyboard())
+    else:
+        await show_main_menu(message, user_id, row[0])
+
+@router.callback_query(F.data == "go_main_menu")
+async def process_go_main_menu(callback: CallbackQuery):
+    lang = get_user_lang(callback.from_user.id)
+    await show_main_menu(callback, callback.from_user.id, lang)
+
+# ==================== СПРАВКА И ПРОФИЛЬ ====================
+
+@router.message(Command("help"))
+@router.callback_query(F.data == "show_help")
+async def cmd_help(event: Message | CallbackQuery):
+    lang = get_user_lang(event.from_user.id)
+    text = TEXTS[lang]["help"]
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Menu", callback_data="go_main_menu")]])
+
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
+    else:
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+
+@router.message(Command("profile"))
+@router.callback_query(F.data == "show_profile")
+async def show_profile_handler(event: Message | CallbackQuery):
+    user_id = event.from_user.id
+    lang = get_user_lang(user_id)
+    t = TEXTS[lang]
+
+    cursor.execute("SELECT roblox_nick, fio, birth_date, gender, bio, status FROM users WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
+
+    if not user or not user[1]:
+        text = t["no_char"]
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=WEB_APP_URL))]])
+    else:
+        status_key = f"status_{user[5]}"
+        status_str = t.get(status_key, user[5])
+
+        text = (
+            f"👤 **Canadian ID Character Profile**\n"
+            f"Status: **{status_str}**\n\n"
+            f"🎮 **Roblox Username:** {user[0]}\n"
+            f"📛 **Full Name:** {user[1]}\n"
+            f"📅 **Date of Birth:** {user[2]}\n"
+            f"⚧ **Gender:** {user[3]}\n"
+            f"📖 **Biography:** {user[4]}"
+        )
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")],
+            [InlineKeyboardButton(text="◀️ Menu", callback_data="go_main_menu")]
+        ])
+
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
+    else:
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+
 # ==================== СБРОС И УДАЛЕНИЕ ====================
 
 @router.message(Command("delete"))
@@ -43,16 +318,16 @@ async def handle_web_app_data(message: Message, bot: Bot):
         """, (username, roblox_nick, full_name, dob, gender, bio, user_id))
         conn.commit()
 
-        # Уведомление админу
+        # Уведомление администратору
         admin_text = (
-            f"📋 New Registration Submitted via Web App:\n"
-            f"👤 From: @{username} (ID: {user_id})\n"
-            f"🌐 Lang: {lang}\n\n"
-            f"🎮 Roblox Username: {roblox_nick}\n"
-            f"📛 Full Name: {full_name}\n"
-            f"📅 Date of Birth: {dob}\n"
-            f"⚧ Gender: {gender}\n"
-            f"📖 Biography: {bio}"
+            f"📋 **New Registration Submitted via Web App:**\n"
+            f"👤 From: @{username} (ID: `{user_id}`)\n"
+            f"🌐 Lang: `{lang}`\n\n"
+            f"🎮 **Roblox Username:** {roblox_nick}\n"
+            f"📛 **Full Name:** {full_name}\n"
+            f"📅 **Date of Birth:** {dob}\n"
+            f"⚧ **Gender:** {gender}\n"
+            f"📖 **Biography:** {bio}"
         )
 
         kb = InlineKeyboardMarkup(inline_keyboard=[[
@@ -74,7 +349,7 @@ async def approve_user(callback: CallbackQuery, bot: Bot):
     conn.commit()
 
     await bot.send_message(target_id, "🎉 Your Canadian character registration has been approved!")
-    await callback.message.edit_text(callback.message.text + "\n\n✅ APPROVED")
+    await callback.message.edit_text(callback.message.text + "\n\n✅ **APPROVED**")
 
 @router.callback_query(F.data.startswith("reject_"))
 async def reject_user(callback: CallbackQuery, bot: Bot):
@@ -83,7 +358,7 @@ async def reject_user(callback: CallbackQuery, bot: Bot):
     conn.commit()
 
     await bot.send_message(target_id, "❌ Your character registration application was rejected.")
-    await callback.message.edit_text(callback.message.text + "\n\n❌ REJECTED")
+    await callback.message.edit_text(callback.message.text + "\n\n❌ **REJECTED**")
 
 # ==================== ЗАПУСК ====================
 async def main():
@@ -94,5 +369,5 @@ async def main():
     print("Бот успешно запущен!")
     await dp.start_polling(bot)
 
-if name == "main":
+if __name__ == "__main__":
     asyncio.run(main())
