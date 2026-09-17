@@ -61,9 +61,10 @@ router = Router()
 
 HELP_TEXT = (
     "📖 **Список доступных команд:**\n\n"
-    "• `/start` — Запустить бота и посмотреть текущий статус персонажа\n"
+    "• `/start` — Запустить бота и открыть главное меню\n"
     "• `/help` — Показать эту справку по командам\n"
-    "• `/delete` или `/reset` — Удалить текущего персонажа и сбросить анкету для создания нового"
+    "• `/profile` — Посмотреть карточку своего РП-персонажа\n"
+    "• `/delete` или `/reset` — Удалить персонажа и сбросить анкету"
 )
 
 @router.message(Command("help"))
@@ -73,6 +74,56 @@ async def cmd_help(message: Message):
 @router.callback_query(F.data == "show_help")
 async def process_show_help(callback: CallbackQuery):
     await callback.message.answer(HELP_TEXT)
+
+# ==================== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ ====================
+
+async def get_profile_data(user_id: int):
+    cursor.execute("""
+    SELECT fio, gender, birth_date, citizenship, fraction, bio, 
+           social_status, photo, signature, document_type, issue_reason, delivery_type, status 
+    FROM users WHERE user_id = ?
+    """, (user_id,))
+    return cursor.fetchone()
+
+@router.message(Command("profile"))
+@router.callback_query(F.data == "show_profile")
+async def show_profile_handler(event: Message | CallbackQuery):
+    user_id = event.from_user.id
+    user = await get_profile_data(user_id)
+
+    if not user:
+        text = "❌ У вас пока нет созданного персонажа. Нажмите /start, чтобы зарегистрироваться."
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
+        ]])
+    else:
+        status_map = {"approved": "✅ Одобрена", "pending": "⏳ На проверке", "rejected": "❌ Отклонена"}
+        status_str = status_map.get(user[12], "Неизвестно")
+
+        text = (
+            f"👤 **Карточка РП-персонажа** (Статус: {status_str})\n\n"
+            f"1. **ФИО:** {user[0]}\n"
+            f"2. **Пол:** {user[1]}\n"
+            f"3. **Дата рождения:** {user[2]}\n"
+            f"4. **Гражданство:** {user[3]}\n"
+            f"5. **Фракция:** {user[4]}\n"
+            f"6. **Биография:** {user[5]}\n"
+            f"7. **Социальный статус:** {user[6]}\n"
+            f"8. **Фото/Внешность:** {user[7]}\n"
+            f"9. **Личная подпись:** {user[8]}\n"
+            f"10. **Тип документа:** {user[9]}\n"
+            f"11. **Причина выдачи:** {user[10]}\n"
+            f"12. **Способ получения:** {user[11]}"
+        )
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🗑 Удалить персонажа", callback_data="user_delete_self")],
+            [InlineKeyboardButton(text="◀️ В главное меню", callback_data="go_main_menu")]
+        ])
+
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb)
+    else:
+        await event.message.edit_text(text, reply_markup=kb)
 
 # ==================== ОБРАБОТЧИКИ СБРОСА И УДАЛЕНИЯ ====================
 
@@ -87,8 +138,7 @@ async def cmd_delete_character(message: Message, state: FSMContext):
         InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
     ]])
     await message.answer(
-        "🗑 Ваш РП-персонаж был успешно удалён!\n\n"
-        "Вы можете зарегистрировать нового персонажа с чистого листа.",
+        "🗑 Ваш РП-персонаж был успешно удалён!\n\nВы можете зарегистрировать нового персонажа с чистого листа.",
         reply_markup=kb
     )
 
@@ -102,58 +152,51 @@ async def process_user_delete_self(callback: CallbackQuery, state: FSMContext):
         InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
     ]])
     await callback.message.edit_text(
-        "🗑 Ваш РП-персонаж успешно удалён.\n\n"
-        "Вы можете начать регистрацию заново:",
+        "🗑 Ваш РП-персонаж успешно удалён.\n\nВы можете начать регистрацию заново:",
         reply_markup=kb
     )
 
 # ==================== СТАРТ И АНКЕТА ====================
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext):
-    user_id = message.from_user.id
+@router.callback_query(F.data == "go_main_menu")
+async def cmd_start(event: Message | CallbackQuery, state: FSMContext):
+    user_id = event.from_user.id
     cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
 
     if user:
         fio, status = user
         if status == "approved":
-            kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")],
-                [InlineKeyboardButton(text="🗑 Удалить персонажа", callback_data="user_delete_self")]
-            ])
-            await message.answer(
-                f"✅ У вас уже есть одобренный персонаж: **{fio}**.\n\n"
-                f"Если вы хотите сбросить текущего персонажа и зарегистрировать нового, нажмите кнопку ниже:",
-                reply_markup=kb
-            )
-            return
-        elif status == "pending":
-            kb = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")
-            ]])
-            await message.answer(
-                "⏳ Ваша анкета находится на рассмотрении у администратора. Ожидайте решения.",
-                reply_markup=kb
-            )
-            return
+            text = f"✅ У вас уже есть одобренный персонаж: **{fio}**."
+        else:
+            text = f"⏳ Ваша анкета персонажа **{fio}** находится на рассмотрении."
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")],
-        [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")]
-    ])
-    
-    await message.answer(
-        "👋 Добро пожаловать в бота регистрации канадского паспорта!\n\n"
-        f"{HELP_TEXT}\n\n"
-        "Нажмите кнопку **«🚀 Начать регистрацию»** ниже, чтобы перейти к заполнению анкеты из 12 шагов:",
-        reply_markup=kb
-    )
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="👤 Профиль (Моя анкета)", callback_data="show_profile")],
+            [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")],
+            [InlineKeyboardButton(text="🗑 Удалить персонажа", callback_data="user_delete_self")]
+        ])
+    else:
+        text = (
+            "👋 Добро пожаловать в бота регистрации канадского паспорта!\n\n"
+            f"{HELP_TEXT}\n\n"
+            "Нажмите кнопку **«🚀 Начать регистрацию»** ниже, чтобы перейти к заполнению анкеты из 12 шагов:"
+        )
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")],
+            [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")]
+        ])
+
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb)
+    else:
+        await event.message.edit_text(text, reply_markup=kb)
 
 @router.callback_query(F.data == "start_registration")
 async def start_registration_callback(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Registration.step1_fio)
-    await callback.message.answer(" Начинаем регистрацию канадского паспорта.\n\n**Шаг 1/12:** Введите Ф.И.О вашего РП-персонажа:")
+    await callback.message.answer("📋 Начинаем регистрацию канадского паспорта.\n\n**Шаг 1/12:** Введите Ф.И.О вашего РП-персонажа:")
 
 @router.message(Registration.step1_fio)
 async def process_step1(message: Message, state: FSMContext):
