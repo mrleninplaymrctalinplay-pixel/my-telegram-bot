@@ -9,7 +9,6 @@ from aiohttp import web
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     BufferedInputFile,
@@ -29,12 +28,6 @@ WEB_APP_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/"
 
 logging.basicConfig(level=logging.INFO)
 router = Router()
-
-# ==================== СОСТОЯНИЯ (FSM) ====================
-class ComplaintState(StatesGroup):
-    waiting_for_violation = State()   # Суть нарушения
-    waiting_for_description = State() # Описание ситуации
-    waiting_for_photo = State()       # Скриншот доказательство
 
 # ==================== БАЗА ДАННЫХ ====================
 conn = sqlite3.connect("users.db", check_same_thread=False)
@@ -141,7 +134,9 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     t = TEXTS.get(lang, TEXTS["ru"])
     cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
+    
     localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
+    complaints_webapp_url = f"{WEB_APP_URL}?page=complaints&lang={lang}"
 
     if user and user[0] and user[1] in ["approved", "pending"]:
         fio, status = user[0], user[1]
@@ -149,10 +144,10 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     else:
         text = t["start"]
 
-    # Обновленное чистое меню без лишних разделов
+    # Главное меню с Web App для создания персонажа и жалоб
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟢 Создание персонажа", web_app=WebAppInfo(url=localized_webapp_url))],
-        [InlineKeyboardButton(text="🔴 Жалобы", callback_data="complaints_menu")],
+        [InlineKeyboardButton(text="🔴 Жалобы", web_app=WebAppInfo(url=complaints_webapp_url))],
         [
             InlineKeyboardButton(text="👤 Профиль", callback_data="show_profile"),
             InlineKeyboardButton(text="🌐 Язык", callback_data="change_language")
@@ -230,7 +225,7 @@ async def show_profile_handler(event: Message | CallbackQuery):
     if not user or not user[1]:
         text = t["no_char"]
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=t["form_btn"] if "form_btn" in t else "Создать", web_app=WebAppInfo(url=localized_webapp_url))],
+            [InlineKeyboardButton(text="🟢 Создание персонажа", web_app=WebAppInfo(url=localized_webapp_url))],
             [InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]
         ])
     else:
@@ -276,122 +271,6 @@ async def cmd_delete_character(event: Message | CallbackQuery, state: FSMContext
         await event.answer(t["deleted"], reply_markup=kb)
     else:
         await event.message.edit_text(t["deleted"], reply_markup=kb)
-
-# ==================== МЕНЮ ЖАЛОБ И ПОДАЧА С ФОТО ====================
-
-@router.callback_query(F.data == "complaints_menu")
-async def complaints_menu_handler(callback: CallbackQuery):
-    text = (
-        "🔴 **Раздел жалоб Plaza.World**\n\n"
-        "Здесь вы можете подать жалобу на игрока или администратора, прикрепив скриншот нарушения.\n\n"
-        "Выберите действие в меню ниже:"
-    )
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="➕ Подать жалобу", callback_data="start_complaint")],
-        [
-            InlineKeyboardButton(text="📋 Все", callback_data="comp_filter_all"),
-            InlineKeyboardButton(text="⏳ На рассмотрении", callback_data="comp_filter_review")
-        ],
-        [
-            InlineKeyboardButton(text="✅ Принято", callback_data="comp_filter_accepted"),
-            InlineKeyboardButton(text="❌ Отклонено", callback_data="comp_filter_rejected")
-        ],
-        [InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]
-    ])
-    await callback.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
-    await callback.answer()
-
-@router.callback_query(F.data.startswith("comp_filter_"))
-async def filter_complaints_dummy(callback: CallbackQuery):
-    filter_type = callback.data.split("_")[2]
-    names = {
-        "all": "Все жалобы",
-        "review": "Жалобы на рассмотрении",
-        "accepted": "Принятые жалобы",
-        "rejected": "Отклоненные жалобы"
-    }
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад к жалобам", callback_data="complaints_menu")]])
-    await callback.message.edit_text(f"📂 **{names.get(filter_type, 'Жалобы')}**\n\nСписок в данной категории пуст.", reply_markup=kb, parse_mode="Markdown")
-    await callback.answer()
-
-@router.callback_query(F.data == "start_complaint")
-async def start_complaint(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(ComplaintState.waiting_for_violation)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data="complaints_menu")]])
-    await callback.message.edit_text(
-        "🔴 **Подача жалобы**\n\nУкажите суть нарушения (например: *НФ / оскорбление в нрп чате*):",
-        reply_markup=kb,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
-
-@router.message(ComplaintState.waiting_for_violation)
-async def process_violation(message: Message, state: FSMContext):
-    await state.update_data(violation=message.text)
-    await state.set_state(ComplaintState.waiting_for_description)
-    await message.answer("📝 Напишите подробное **описание** ситуации:", parse_mode="Markdown")
-
-@router.message(ComplaintState.waiting_for_description)
-async def process_description(message: Message, state: FSMContext):
-    await state.update_data(description=message.text)
-    await state.set_state(ComplaintState.waiting_for_photo)
-    await message.answer("🖼 Отправьте **скриншот (фото)** в качестве доказательства нарушения:", parse_mode="Markdown")
-
-@router.message(ComplaintState.waiting_for_photo, F.photo)
-async def process_complaint_photo(message: Message, state: FSMContext, bot: Bot):
-    data = await state.get_data()
-    violation = data.get("violation")
-    description = data.get("description")
-    
-    photo_file_id = message.photo[-1].file_id
-    user_id = message.from_user.id
-    username = message.from_user.username or "N/A"
-
-    admin_text = (
-        f"🔴 **Новая жалоба от игрока!**\n"
-        f"👤 От: @{username} (ID: `{user_id}`)\n\n"
-        f"⚡ **НАРУШЕНИЕ:**\n{violation}\n\n"
-        f"📖 **ОПИСАНИЕ:**\n{description}"
-    )
-
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="✅ Принять", callback_data=f"accept_comp_{user_id}"),
-        InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_comp_{user_id}")
-    ]])
-
-    await bot.send_photo(
-        chat_id=ADMIN_CHAT_ID,
-        photo=photo_file_id,
-        caption=admin_text,
-        reply_markup=kb,
-        parse_mode="Markdown"
-    )
-
-    kb_menu = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ К жалобам", callback_data="complaints_menu")]])
-    await message.answer("✅ **Жалоба успешно отправлена администрации!** Ожидайте рассмотрения.", reply_markup=kb_menu, parse_mode="Markdown")
-    await state.clear()
-
-@router.message(ComplaintState.waiting_for_photo, ~F.photo)
-async def process_complaint_wrong_media(message: Message):
-    await message.answer("⚠️ Пожалуйста, отправьте именно **изображение (скриншот)**.")
-
-@router.callback_query(F.data.startswith("accept_comp_"))
-async def accept_complaint(callback: CallbackQuery, bot: Bot):
-    target_id = int(callback.data.split("_")[2])
-    try:
-        await bot.send_message(target_id, "✅ **Ваша жалоба была принята администрацией!**")
-    except Exception:
-        pass
-    await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ **ЖАЛОБА ПРИНЯТА**", reply_markup=None)
-
-@router.callback_query(F.data.startswith("reject_comp_"))
-async def reject_complaint(callback: CallbackQuery, bot: Bot):
-    target_id = int(callback.data.split("_")[2])
-    try:
-        await bot.send_message(target_id, "❌ **Ваша жалоба была отклонена администрацией.**")
-    except Exception:
-        pass
-    await callback.message.edit_caption(caption=callback.message.caption + "\n\n❌ **ЖАЛОБА ОТКЛОНЕНА**", reply_markup=None)
 
 # ==================== ПРИЕМ АНКЕТЫ ИЗ WEB APP ====================
 
