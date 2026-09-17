@@ -36,6 +36,8 @@
         .violation-type { font-size: 12px; color: #888; margin-bottom: 8px; }
         .card-text { font-size: 13px; color: #ccc; line-height: 1.4; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .card-footer { border-top: 1px solid #222; padding-top: 10px; display: flex; justify-content: space-between; font-size: 11px; color: #777; }
+        
+        .empty-state { text-align: center; color: #666; font-size: 13px; margin-top: 40px; }
 
         /* Модальные окна */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); padding: 15px; overflow-y: auto; z-index: 100; }
@@ -74,28 +76,9 @@
         <button class="filter-chip" onclick="filterCards('rejected', this)">Отклонено</button>
     </div>
 
-    <!-- Список жалоб -->
+    <!-- Список жалоб (пустой по умолчанию) -->
     <div id="complaints-list">
-        <div class="card" data-status="pending" onclick="openDetailView(this)">
-            <div class="card-header">
-                <div class="user-info">
-                    <div class="avatar-badge">НФ</div>
-                    <div>
-                        <div class="username">на фото ник</div>
-                        <div style="font-size: 10px; color: #888;">TG: @ivan_tg</div>
-                    </div>
-                </div>
-                <div class="status-badge status-pending">На рассмотрении</div>
-            </div>
-            <div class="violation-type">бан домам не юзает ис оски в нрп чате</div>
-            <div class="card-text">
-                Я зашел в дом она начала меня кидать тележкой и банить потом каким то хуеп... девушка 16 лет взяла на плечо 80 кг парня...
-            </div>
-            <div class="card-footer">
-                <span>🕒 08.09.2026</span>
-                <span>💬 1 ответ</span>
-            </div>
-        </div>
+        <div class="empty-state">Список жалоб пуст. Нажмите «+ Подать», чтобы создать первую.</div>
     </div>
 
     <!-- Модальное окно подачи жалобы -->
@@ -103,7 +86,7 @@
         <div class="modal-content">
             <h3>Подать жалобу</h3>
             <div class="form-group">
-                <label>Ваш Telegram ник:</label>
+                <label>Ваш Telegram:</label>
                 <input type="text" id="tgUser" readonly style="color: #888;">
             </div>
             <div class="form-group">
@@ -112,11 +95,11 @@
             </div>
             <div class="form-group">
                 <label>Ник нарушителя:</label>
-                <input type="text" id="targetNick" placeholder="Кого жаловаться">
+                <input type="text" id="targetNick" placeholder="На кого жалоба">
             </div>
             <div class="form-group">
                 <label>Опишите ситуацию:</label>
-                <textarea id="situation" placeholder="Опишите подробно, когда это произошло..."></textarea>
+                <textarea id="situation" placeholder="Опишите подробно суть нарушения..."></textarea>
             </div>
             <div class="form-group">
                 <label>Ссылка на скриншот (Imgur / фото):</label>
@@ -136,16 +119,20 @@
                 <b id="detailTgUser">-</b>
             </div>
             <div class="detail-row">
-                <span>Ник в игре / Нарушитель:</span>
+                <span>Игрок / Нарушитель:</span>
                 <b id="detailPlayers">-</b>
             </div>
             <div class="detail-row">
                 <span>Описание ситуации:</span>
                 <p id="detailText" style="color: #ccc; font-size: 13px; margin-top: 3px; line-height: 1.4;">-</p>
             </div>
+            <div class="detail-row" id="screenshotRow" style="display:none;">
+                <span>Скриншот:</span>
+                <a id="detailScreenshotLink" href="#" target="_blank" style="color: #4da6ff; font-size: 13px;">Открыть ссылку</a>
+            </div>
             
             <!-- Изменение статуса -->
-            <div class="form-group">
+            <div class="form-group" style="margin-top: 12px;">
                 <label>Статус жалобы:</label>
                 <select id="statusSelect" onchange="changeStatus(this.value)">
                     <option value="pending">На рассмотрении</option>
@@ -157,7 +144,7 @@
             <div class="comments-section">
                 <span style="color: #888; font-size: 11px; display: block; margin-bottom: 8px;">ОТВЕТЫ И КОММЕНТАРИИ:</span>
                 <div id="commentsList">
-                    <div class="comment-item"><b>Администратор:</b> Жалоба передана на рассмотрение.</div>
+                    <div class="comment-item"><b>Администратор:</b> Жалоба зарегистрирована.</div>
                 </div>
                 <div class="form-group" style="margin-top: 10px;">
                     <input type="text" id="replyInput" placeholder="Написать ответ...">
@@ -180,6 +167,68 @@
         }
         document.getElementById('tgUser').value = userTelegram;
 
+        // Массив жалоб (тестовая начальная или пустой массив)
+        let complaints = [
+            {
+                id: 1,
+                telegram: "@admin_greeland",
+                sender: "Ivan_Player",
+                target: "Violator_User",
+                situation: "Игрок использовал баги стрельбы и оскорблял родных в нонРП чате.",
+                screenshot: "https://imgur.com/",
+                status: "pending",
+                date: "08.09.2026",
+                comments: ["Администратор: Проверяем предоставленные доказательства."]
+            }
+        ];
+
+        let currentFilter = 'all';
+        let currentComplaintId = null;
+
+        function renderComplaints() {
+            let listContainer = document.getElementById('complaints-list');
+            listContainer.innerHTML = '';
+
+            let filtered = complaints.filter(c => currentFilter === 'all' || c.status === currentFilter);
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state">Нет жалоб в этой категории.</div>';
+                return;
+            }
+
+            filtered.forEach(c => {
+                let statusText = 'На рассмотрении';
+                let statusClass = 'status-pending';
+                if (c.status === 'accepted') { statusText = 'Принято'; statusClass = 'status-accepted'; }
+                else if (c.status === 'rejected') { statusText = 'Отклонено'; statusClass = 'status-rejected'; }
+
+                let initials = c.target.substring(0, 2).toUpperCase();
+
+                let card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => openDetailView(c.id);
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="user-info">
+                            <div class="avatar-badge">${initials}</div>
+                            <div>
+                                <div class="username">${c.target}</div>
+                                <div style="font-size: 10px; color: #888;">TG: ${c.telegram}</div>
+                            </div>
+                        </div>
+                        <div class="status-badge ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="violation-type">От: ${c.sender}</div>
+                    <div class="card-text">${c.situation}</div>
+                    <div class="card-footer">
+                        <span>🕒 ${c.date}</span>
+                        <span>💬 ${c.comments.length} ответа(-ов)</span>
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
         function openAddModal() {
             document.getElementById('addModal').style.display = 'block';
         }
@@ -188,38 +237,44 @@
             document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
         }
 
-        let activeCardElement = null;
+        function openDetailView(id) {
+            currentComplaintId = id;
+            let c = complaints.find(item => item.id === id);
+            if (!c) return;
 
-        function openDetailView(cardElement) {
-            activeCardElement = cardElement;
-            
-            document.getElementById('detailTitle').innerText = cardElement.querySelector('.violation-type').innerText;
-            document.getElementById('detailTgUser').innerText = cardElement.querySelector('.user-info div div:nth-child(2)').innerText.replace('TG: ', '');
-            document.getElementById('detailPlayers').innerText = cardElement.querySelector('.username').innerText;
-            document.getElementById('detailText').innerText = cardElement.querySelector('.card-text').innerText;
-            
-            let currentStatus = cardElement.getAttribute('data-status');
-            document.getElementById('statusSelect').value = currentStatus;
+            document.getElementById('detailTitle').innerText = `Жалоба на ${c.target}`;
+            document.getElementById('detailTgUser').innerText = c.telegram;
+            document.getElementById('detailPlayers').innerText = `От: ${c.sender} | Нарушитель: ${c.target}`;
+            document.getElementById('detailText').innerText = c.situation;
+            document.getElementById('statusSelect').value = c.status;
+
+            let ssRow = document.getElementById('screenshotRow');
+            let ssLink = document.getElementById('detailScreenshotLink');
+            if (c.screenshot && c.screenshot.startsWith('http')) {
+                ssLink.href = c.screenshot;
+                ssRow.style.display = 'block';
+            } else {
+                ssRow.style.display = 'none';
+            }
+
+            let commentsHtml = '';
+            c.comments.forEach(comm => {
+                let parts = comm.split(':');
+                let author = parts[0];
+                let text = parts.slice(1).join(':');
+                commentsHtml += `<div class="comment-item"><b>${author}:</b> ${text}</div>`;
+            });
+            document.getElementById('commentsList').innerHTML = commentsHtml;
 
             document.getElementById('detailModal').style.display = 'block';
         }
 
         function changeStatus(newStatus) {
-            if (!activeCardElement) return;
-            activeCardElement.setAttribute('data-status', newStatus);
-            
-            let badge = activeCardElement.querySelector('.status-badge');
-            badge.className = 'status-badge';
-            
-            if (newStatus === 'pending') {
-                badge.classList.add('status-pending');
-                badge.innerText = 'На рассмотрении';
-            } else if (newStatus === 'accepted') {
-                badge.classList.add('status-accepted');
-                badge.innerText = 'Принято';
-            } else if (newStatus === 'rejected') {
-                badge.classList.add('status-rejected');
-                badge.innerText = 'Отклонено';
+            if (currentComplaintId === null) return;
+            let c = complaints.find(item => item.id === currentComplaintId);
+            if (c) {
+                c.status = newStatus;
+                renderComplaints();
             }
         }
 
@@ -234,41 +289,59 @@
                 return;
             }
 
-            const complaintData = {
-                type: "new_complaint",
+            let newComp = {
+                id: Date.now(),
                 telegram: userTelegram,
                 sender: sender,
                 target: target,
                 situation: situation,
-                screenshot: screenshot
+                screenshot: screenshot,
+                status: 'pending',
+                date: new Date().toLocaleDateString(),
+                comments: ["Система: Жалоба успешно создана."]
             };
 
-            tg.sendData(JSON.stringify(complaintData));
+            complaints.unshift(newComp);
+            renderComplaints();
+            closeModals();
+
+            // Очистка формы
+            document.getElementById('senderNick').value = '';
+            document.getElementById('targetNick').value = '';
+            document.getElementById('situation').value = '';
+            document.getElementById('screenshotUrl').value = '';
+
+            // Если бот запущен в Telegram, можно отправить данные
+            try {
+                tg.sendData(JSON.stringify({ type: "new_complaint", ...newComp }));
+            } catch(e) {}
         }
 
         function sendReply() {
             const replyText = document.getElementById('replyInput').value;
-            if (!replyText) return;
+            if (!replyText || currentComplaintId === null) return;
 
-            const commentsList = document.getElementById('commentsList');
-            commentsList.innerHTML += `<div class="comment-item"><b>Вы (${userTelegram}):</b> ${replyText}</div>`;
-            document.getElementById('replyInput').value = '';
+            let c = complaints.find(item => item.id === currentComplaintId);
+            if (c) {
+                let commentStr = `Вы (${userTelegram}): ${replyText}`;
+                c.comments.push(commentStr);
+                
+                let commentsList = document.getElementById('commentsList');
+                commentsList.innerHTML += `<div class="comment-item"><b>Вы (${userTelegram}):</b> ${replyText}</div>`;
+                document.getElementById('replyInput').value = '';
+                renderComplaints();
+            }
         }
 
         function filterCards(category, element) {
             document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
-
-            let cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                let status = card.getAttribute('data-status');
-                if (category === 'all' || status === category) {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
+            currentFilter = category;
+            renderComplaints();
         }
+
+        // Первичный запуск отображения списка
+        renderComplaints();
     </script>
 </body>
 </html>
