@@ -345,13 +345,24 @@ async def handle_web_app_data(message: Message, bot: Bot):
         bio = data.get("bio", "N/A")
         signature = data.get("signature", "N/A")
 
+        # Создание или обновление записи пользователя
         cursor.execute("""
-        UPDATE users SET username=?, roblox_nick=?, fio=?, birth_date=?, gender=?, skin_url=?, bio=?, signature=?, status='pending'
-        WHERE user_id=?
-        """, (username, roblox_nick, full_name, dob, gender, skin_url, bio, signature, user_id))
+        INSERT INTO users (user_id, username, roblox_nick, fio, birth_date, gender, skin_url, bio, signature, status, language)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            username=excluded.username,
+            roblox_nick=excluded.roblox_nick,
+            fio=excluded.fio,
+            birth_date=excluded.birth_date,
+            gender=excluded.gender,
+            skin_url=excluded.skin_url,
+            bio=excluded.bio,
+            signature=excluded.signature,
+            status='pending'
+        """, (user_id, username, roblox_nick, full_name, dob, gender, skin_url, bio, signature, lang))
         conn.commit()
 
-        # Карточка для админов всегда на русском языке
+        # Карточка анкеты для администраторов
         admin_text = (
             f"📋 **Новая анкета на проверку:**\n"
             f"👤 От пользователя: @{username} (ID: `{user_id}`)\n"
@@ -396,8 +407,8 @@ async def approve_user(callback: CallbackQuery, bot: Bot):
                 photo=photo_file,
                 caption="🎉 **Ваша анкета одобрена!**\nВот ваш канадский ID-документ:"
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(f"Не удалось отправить фото пользователю: {e}")
 
     await callback.message.edit_text(callback.message.text + "\n\n✅ **ОДОБРЕНО (ID выдан)**")
 
@@ -425,8 +436,8 @@ async def process_reject_reason(message: Message, state: FSMContext, bot: Bot):
             target_id,
             f"❌ **Ваша анкета отклонена.**\n\n📌 **Причина:** {reason}\n\nВы можете исправить ошибки и подать анкету заново через `/start`."
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logging.error(f"Не удалось отправить сообщение пользователю: {e}")
 
     await admin_msg.edit_text(admin_msg.text + f"\n\n❌ **ОТКЛОНЕНО**\n📌 Причина: {reason}")
     await message.reply("✅ Причина отправлена игроку.")
@@ -442,7 +453,7 @@ async def main():
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
 
-    # Веб-сервер для удержания активного статуса на Render
+    # Веб-сервер для поддержания работы на Render
     app = web.Application()
     app.router.add_get("/", handle_health_check)
     runner = web.AppRunner(app)
