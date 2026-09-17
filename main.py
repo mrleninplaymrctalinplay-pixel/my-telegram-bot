@@ -1,53 +1,51 @@
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
-from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+import sys
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from aiogram.filters import CommandStart
 
-# Токен вашего бота от BotFather
-BOT_TOKEN = "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI"
+# Вставьте сюда токен вашего бота от BotFather
+TOKEN = "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI"
 
-# Ваша рабочая ссылка на хостинге Render
-WEB_APP_URL = "https://my-telegram-bot-cwph.onrender.com"
+# Ссылки на ваши мини-приложения на GitHub Pages
+SOCIAL_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/social.html"
+COMPLAINTS_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/complaints.html"
 
-bot = Bot(token=BOT_TOKEN)
+# Инициализация бота и диспетчера
+bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(
-                text="📱 GreeLand Gram (Инста)", 
-                web_app=WebAppInfo(url=f"{WEB_APP_URL}/social.html")
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                text="🚨 Суд и Жалобы", 
-                web_app=WebAppInfo(url=f"{WEB_APP_URL}/complaints.html")
-            )
-        ],
-        [
-            InlineKeyboardButton(text="🌐 Зайти в Brookhaven 24/7", url="https://www.roblox.com/games/4924922222/Brookhaven-RP")
+@dp.message(CommandStart())
+async def command_start_handler(message: Message) -> None:
+    # Создаем клавиатуру с кнопками для Mini Apps
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="💬 Социальная сеть",
+                    web_app=WebAppInfo(url=SOCIAL_URL)
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🚨 Жалобы и Поддержка",
+                    web_app=WebAppInfo(url=COMPLAINTS_URL)
+                )
+            ]
         ]
-    ])
-    
-    text = (
-        "🌴 **Добро пожаловать в официальный хаб Brookhaven 24/7!**\n\n"
-        "• **GreeLand Gram** — делитесь фото, лайкайте и общайтесь в РП-соцсети.\n"
-        "• **Суд и Жалобы** — подавайте и рассматривайте репорты на нарушителей.\n\n"
-        "Выберите нужное мини-приложение ниже:"
     )
-    await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
+    
+    await message.answer(
+        f"Привет, {message.from_user.full_name}! 👋\n"
+        "Добро пожаловать! Выберите нужное мини-приложение ниже:",
+        reply_markup=keyboard
+    )
 
-@dp.message(Command("server"))
-async def cmd_server(message: types.Message):
-    await message.answer("🟢 **Статус серверов:** Работают стабильно (24/7) 🚀")
-
-async def main():
-    logging.basicConfig(level=logging.INFO)
+async def main() -> None:
+    # Запуск опроса серверов Telegram (Polling)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     asyncio.run(main())
