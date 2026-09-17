@@ -11,13 +11,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 
 # Токен бота
-TOKEN = os.getenv("TOKEN", "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI")
+TOKEN = os.getenv("TOKEN", "YOUR_BOT_TOKEN_HERE")
 
 SOCIAL_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/social.html"
 COMPLAINTS_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/complaints.html"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
+
+# Словарь для хранения анкет пользователей
+user_profiles = {}
 
 # Состояния для регистрации персонажа (12 пунктов)
 class RegistrationStates(StatesGroup):
@@ -34,14 +37,14 @@ class RegistrationStates(StatesGroup):
     step_11 = State()
     step_12 = State()
 
-# Команда /start - открытие меню и запуск регистрации
+# Команда /start - главное меню
 @dp.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="💬 Социальная сеть", web_app=WebAppInfo(url=SOCIAL_URL)),
-                InlineKeyboardButton(text="🚨 Жалобы", web_app=WebAppInfo(url=COMPLAINTS_URL))
+                InlineKeyboardButton(text="🚨 Жалобы и Поддержка", web_app=WebAppInfo(url=COMPLAINTS_URL))
             ],
             [
                 InlineKeyboardButton(text="📝 Зарегистрировать персонажа", callback_data="start_reg")
@@ -51,7 +54,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     
     await message.answer(
         f"Привет, {message.from_user.full_name}! 👋\n"
-        "Добро пожаловать! Выберите нужное действие или мини-приложение:",
+        "Добро пожаловать! Выберите нужное действие или мини-приложение ниже:",
         reply_markup=keyboard
     )
 
@@ -60,12 +63,38 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 async def command_help_handler(message: Message) -> None:
     await message.answer(
         "📖 **Справка по боту:**\n\n"
-        "/start — Главное меню и запуск мини-приложений\n"
-        "/help — Помощь по командам\n\n"
-        "Вы также можете заполнить анкету персонажа (12 пунктов), нажав на кнопку в меню."
+        "/start — Главное меню и мини-приложения\n"
+        "/profile — Посмотреть анкету вашего персонажа\n"
+        "/help — Помощь по командам"
     )
 
-# Обработка нажатия кнопки регистрации
+# Команда /profile — просмотр сохраненного персонажа
+@dp.message(Command("profile"))
+async def command_profile_handler(message: Message) -> None:
+    user_id = message.from_user.id
+    if user_id not in user_profiles:
+        await message.answer("У вас еще нет зарегистрированного персонажа! Нажмите /start и выберите «Зарегистрировать персонажа».")
+        return
+    
+    p = user_profiles[user_id]
+    profile_text = (
+        "👤 **Ваш персонаж:**\n\n"
+        f"1. Имя: {p.get('p1')}\n"
+        f"2. Возраст: {p.get('p2')}\n"
+        f"3. Пол: {p.get('p3')}\n"
+        f"4. Раса: {p.get('p4')}\n"
+        f"5. Внешность: {p.get('p5')}\n"
+        f"6. Характер: {p.get('p6')}\n"
+        f"7. Биография: {p.get('p7')}\n"
+        f"8. Профессия: {p.get('p8')}\n"
+        f"9. Навыки: {p.get('p9')}\n"
+        f"10. Слабости: {p.get('p10')}\n"
+        f"11. Цель: {p.get('p11')}\n"
+        f"12. Дополнительно: {p.get('p12')}"
+    )
+    await message.answer(profile_text)
+
+# Запуск регистрации
 @dp.callback_query(F.data == "start_reg")
 async def start_registration(callback: Message, state: FSMContext):
     await callback.message.answer("📝 Начинаем создание персонажа (12 шагов).\n\n**Пункт 1/12:** Введите имя персонажа:")
@@ -142,11 +171,15 @@ async def reg_step_11(message: Message, state: FSMContext):
 @dp.message(RegistrationStates.step_12)
 async def reg_step_12(message: Message, state: FSMContext):
     user_data = await state.get_data()
+    user_data['p12'] = message.text  # сохраняем 12-й пункт
+    
+    # Сохраняем анкету в общую память по ID пользователя
+    user_profiles[message.from_user.id] = user_data
     await state.clear()
     
-    # Итог регистрации
     result_text = (
-        "🎉 **Регистрация успешно завершена! Ваша анкета:**\n\n"
+        "🎉 **Регистрация успешно завершена и сохранена!**\n"
+        "Теперь вы можете посмотреть её в любой момент командой /profile\n\n"
         f"1. Имя: {user_data.get('p1')}\n"
         f"2. Возраст: {user_data.get('p2')}\n"
         f"3. Пол: {user_data.get('p3')}\n"
@@ -158,11 +191,11 @@ async def reg_step_12(message: Message, state: FSMContext):
         f"9. Навыки: {user_data.get('p9')}\n"
         f"10. Слабости: {user_data.get('p10')}\n"
         f"11. Цель: {user_data.get('p11')}\n"
-        f"12. Дополнительно: {message.text}"
+        f"12. Дополнительно: {user_data.get('p12')}"
     )
     await message.answer(result_text)
 
-# Веб-сервер для удержания порта на Render
+# Веб-сервер для Render
 async def handle(request):
     return web.Response(text="Bot is running!")
 
