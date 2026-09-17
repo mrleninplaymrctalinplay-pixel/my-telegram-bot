@@ -138,6 +138,7 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     # Ссылки на мини-приложения с учетом файлов на GitHub Pages
     localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
     complaints_webapp_url = f"{WEB_APP_URL}complaints.html?lang={lang}"
+    social_webapp_url = f"{WEB_APP_URL}social.html?lang={lang}"
 
     if user and user[0] and user[1] in ["approved", "pending"]:
         fio, status = user[0], user[1]
@@ -147,6 +148,7 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟢 Создание персонажа", web_app=WebAppInfo(url=localized_webapp_url))],
+        [InlineKeyboardButton(text="📸 Соцсеть", web_app=WebAppInfo(url=social_webapp_url))],
         [InlineKeyboardButton(text="🔴 Жалобы", web_app=WebAppInfo(url=complaints_webapp_url))],
         [
             InlineKeyboardButton(text="👤 Профиль", callback_data="show_profile"),
