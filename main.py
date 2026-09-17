@@ -2,14 +2,15 @@ import asyncio
 import logging
 import sys
 import os
+import json
 from aiohttp import web
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, CallbackData
+from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# Вставьте ваш реальный токен сюда вместо строки с заглушкой
-TOKEN = "8996747986:AAHx..."  # либо оставьте os.getenv, если прописали токен в переменных Render
+# Ваш реальный токен бота от BotFather
+TOKEN = "8996747986:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sl"
 
 SOCIAL_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/social.html"
 COMPLAINTS_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/complaints.html"
@@ -75,10 +76,9 @@ async def command_profile_handler(message: Message) -> None:
     )
     await message.answer(text)
 
-# Получение данных анкеты из Mini App
+# Получение данных анкеты из Mini App (register.html)
 @dp.message(F.web_app_data)
 async def handle_web_app_data(message: Message):
-    import json
     try:
         data = json.loads(message.web_app_data.data)
         user_profiles[message.from_user.id] = data
@@ -89,7 +89,7 @@ async def handle_web_app_data(message: Message):
     except Exception as e:
         await message.answer("⚠️ Ошибка при обработке данных анкеты.")
 
-# Веб-сервер для Render
+# Веб-сервер для Render (чтобы порт не простаивал)
 async def handle(request):
     return web.Response(text="Bot is running!")
 
