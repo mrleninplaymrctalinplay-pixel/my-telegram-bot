@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Plaza.World - Жалобы</title>
+    <title>GreeLand - Жалобы</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -19,37 +19,51 @@
         .filter-chip { background-color: #1a1a1a; color: #aaa; border: none; padding: 8px 16px; border-radius: 20px; font-size: 13px; white-space: nowrap; cursor: pointer; }
         .filter-chip.active { background-color: #f2f0eb; color: #000; font-weight: 600; }
 
-        /* Модальное окно формы */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); padding: 20px; overflow-y: auto; z-index: 100; }
-        .modal-content { background: #161616; border: 1px solid #222; border-radius: 16px; padding: 20px; margin-top: 20px; }
-        .modal-content h3 { margin-bottom: 15px; font-size: 16px; color: #f2f0eb; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; }
-        .form-group input, .form-group textarea { width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 10px; color: #fff; font-size: 13px; }
-        .form-group textarea { resize: vertical; height: 80px; }
-        .btn-submit { width: 100%; background: #f2f0eb; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; margin-top: 10px; cursor: pointer; }
-        .btn-close { width: 100%; background: transparent; color: #888; border: none; padding: 10px; margin-top: 5px; cursor: pointer; font-size: 13px; }
-
         /* Карточки */
-        .card { background-color: #161616; border: 1px solid #222; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+        .card { background-color: #161616; border: 1px solid #222; border-radius: 14px; padding: 14px; margin-bottom: 12px; cursor: pointer; transition: 0.2s; }
+        .card:active { transform: scale(0.98); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .user-info { display: flex; align-items: center; gap: 8px; }
         .avatar-badge { background-color: #222; color: #f2f0eb; font-size: 11px; font-weight: bold; padding: 6px 8px; border-radius: 8px; }
         .username { font-size: 14px; font-weight: 600; }
-        .status-badge { background-color: #332b1a; color: #d4af37; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
+        
+        /* Статусы */
+        .status-badge { font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
+        .status-pending { background-color: #332b1a; color: #d4af37; }
+        .status-accepted { background-color: #1b331a; color: #4cd964; }
+        .status-rejected { background-color: #331a1a; color: #ff5252; }
+
         .violation-type { font-size: 12px; color: #888; margin-bottom: 8px; }
-        .card-text { font-size: 13px; color: #ccc; line-height: 1.4; margin-bottom: 12px; }
+        .card-text { font-size: 13px; color: #ccc; line-height: 1.4; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .card-footer { border-top: 1px solid #222; padding-top: 10px; display: flex; justify-content: space-between; font-size: 11px; color: #777; }
+
+        /* Модальные окна */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); padding: 15px; overflow-y: auto; z-index: 100; }
+        .modal-content { background: #161616; border: 1px solid #222; border-radius: 16px; padding: 20px; margin-top: 20px; }
+        .modal-content h3 { margin-bottom: 15px; font-size: 16px; color: #f2f0eb; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; color: #888; margin-bottom: 5px; text-transform: uppercase; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 10px; color: #fff; font-size: 13px; }
+        .form-group textarea { resize: vertical; height: 80px; }
+        .btn-submit { width: 100%; background: #f2f0eb; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; margin-top: 10px; cursor: pointer; }
+        .btn-close { width: 100%; background: transparent; color: #888; border: none; padding: 10px; margin-top: 5px; cursor: pointer; font-size: 13px; }
+
+        /* Просмотр конкретной жалобы */
+        .detail-row { margin-bottom: 10px; font-size: 13px; }
+        .detail-row span { color: #888; font-size: 11px; display: block; }
+        .comments-section { margin-top: 15px; border-top: 1px solid #222; padding-top: 12px; }
+        .comment-item { background: #1a1a1a; padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 12px; }
+        .comment-item b { color: #d4af37; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div class="title-block">
-            <h1>Plaza.World</h1>
+            <h1>GreeLand</h1>
             <p>ЖАЛОБЫ</p>
         </div>
-        <button class="btn-add" onclick="openModal()">+ Подать</button>
+        <button class="btn-add" onclick="openAddModal()">+ Подать</button>
     </div>
 
     <!-- Фильтры -->
@@ -62,31 +76,38 @@
 
     <!-- Список жалоб -->
     <div id="complaints-list">
-        <div class="card">
+        <div class="card" data-status="pending" onclick="openDetailView(this)">
             <div class="card-header">
                 <div class="user-info">
                     <div class="avatar-badge">НФ</div>
-                    <div class="username">на фото ник</div>
+                    <div>
+                        <div class="username">на фото ник</div>
+                        <div style="font-size: 10px; color: #888;">TG: @ivan_tg</div>
+                    </div>
                 </div>
-                <div class="status-badge">НА РАССМОТРЕНИИ</div>
+                <div class="status-badge status-pending">На рассмотрении</div>
             </div>
             <div class="violation-type">бан домам не юзает ис оски в нрп чате</div>
             <div class="card-text">
-                Я зашел в дом она начала меня кидать тележкой и банить...
+                Я зашел в дом она начала меня кидать тележкой и банить потом каким то хуеп... девушка 16 лет взяла на плечо 80 кг парня...
             </div>
             <div class="card-footer">
                 <span>🕒 08.09.2026</span>
-                <span>💬 0</span>
+                <span>💬 1 ответ</span>
             </div>
         </div>
     </div>
 
     <!-- Модальное окно подачи жалобы -->
-    <div id="complaintModal" class="modal">
+    <div id="addModal" class="modal">
         <div class="modal-content">
             <h3>Подать жалобу</h3>
             <div class="form-group">
-                <label>Ваш никнейм:</label>
+                <label>Ваш Telegram ник:</label>
+                <input type="text" id="tgUser" readonly style="color: #888;">
+            </div>
+            <div class="form-group">
+                <label>Ваш ник в игре:</label>
                 <input type="text" id="senderNick" placeholder="Ваш ник в игре">
             </div>
             <div class="form-group">
@@ -102,7 +123,49 @@
                 <input type="text" id="screenshotUrl" placeholder="https://imgur.com/...">
             </div>
             <button class="btn-submit" onclick="submitComplaint()">Отправить жалобу</button>
-            <button class="btn-close" onclick="closeModal()">Отмена</button>
+            <button class="btn-close" onclick="closeModals()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно просмотра и смены статуса -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <h3 id="detailTitle">Детали жалобы</h3>
+            <div class="detail-row">
+                <span>Telegram автора:</span>
+                <b id="detailTgUser">-</b>
+            </div>
+            <div class="detail-row">
+                <span>Ник в игре / Нарушитель:</span>
+                <b id="detailPlayers">-</b>
+            </div>
+            <div class="detail-row">
+                <span>Описание ситуации:</span>
+                <p id="detailText" style="color: #ccc; font-size: 13px; margin-top: 3px; line-height: 1.4;">-</p>
+            </div>
+            
+            <!-- Изменение статуса -->
+            <div class="form-group">
+                <label>Статус жалобы:</label>
+                <select id="statusSelect" onchange="changeStatus(this.value)">
+                    <option value="pending">На рассмотрении</option>
+                    <option value="accepted">Принято</option>
+                    <option value="rejected">Отклонено</option>
+                </select>
+            </div>
+
+            <div class="comments-section">
+                <span style="color: #888; font-size: 11px; display: block; margin-bottom: 8px;">ОТВЕТЫ И КОММЕНТАРИИ:</span>
+                <div id="commentsList">
+                    <div class="comment-item"><b>Администратор:</b> Жалоба передана на рассмотрение.</div>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <input type="text" id="replyInput" placeholder="Написать ответ...">
+                </div>
+                <button class="btn-submit" style="margin-top: 5px;" onclick="sendReply()">Отправить ответ</button>
+            </div>
+
+            <button class="btn-close" onclick="closeModals()" style="margin-top: 15px;">Закрыть</button>
         </div>
     </div>
 
@@ -110,12 +173,54 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        function openModal() {
-            document.getElementById('complaintModal').style.display = 'block';
+        let userTelegram = "Неизвестно";
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            let u = tg.initDataUnsafe.user;
+            userTelegram = u.username ? `@${u.username}` : `${u.first_name} (ID: ${u.id})`;
+        }
+        document.getElementById('tgUser').value = userTelegram;
+
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'block';
         }
 
-        function closeModal() {
-            document.getElementById('complaintModal').style.display = 'none';
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        }
+
+        let activeCardElement = null;
+
+        function openDetailView(cardElement) {
+            activeCardElement = cardElement;
+            
+            document.getElementById('detailTitle').innerText = cardElement.querySelector('.violation-type').innerText;
+            document.getElementById('detailTgUser').innerText = cardElement.querySelector('.user-info div div:nth-child(2)').innerText.replace('TG: ', '');
+            document.getElementById('detailPlayers').innerText = cardElement.querySelector('.username').innerText;
+            document.getElementById('detailText').innerText = cardElement.querySelector('.card-text').innerText;
+            
+            let currentStatus = cardElement.getAttribute('data-status');
+            document.getElementById('statusSelect').value = currentStatus;
+
+            document.getElementById('detailModal').style.display = 'block';
+        }
+
+        function changeStatus(newStatus) {
+            if (!activeCardElement) return;
+            activeCardElement.setAttribute('data-status', newStatus);
+            
+            let badge = activeCardElement.querySelector('.status-badge');
+            badge.className = 'status-badge';
+            
+            if (newStatus === 'pending') {
+                badge.classList.add('status-pending');
+                badge.innerText = 'На рассмотрении';
+            } else if (newStatus === 'accepted') {
+                badge.classList.add('status-accepted');
+                badge.innerText = 'Принято';
+            } else if (newStatus === 'rejected') {
+                badge.classList.add('status-rejected');
+                badge.innerText = 'Отклонено';
+            }
         }
 
         function submitComplaint() {
@@ -129,23 +234,40 @@
                 return;
             }
 
-            // Формируем данные для отправки боту в Telegram
             const complaintData = {
                 type: "new_complaint",
+                telegram: userTelegram,
                 sender: sender,
                 target: target,
                 situation: situation,
                 screenshot: screenshot
             };
 
-            // Передаем данные боту и закрываем приложение
             tg.sendData(JSON.stringify(complaintData));
         }
 
-        // Переключение фильтров
+        function sendReply() {
+            const replyText = document.getElementById('replyInput').value;
+            if (!replyText) return;
+
+            const commentsList = document.getElementById('commentsList');
+            commentsList.innerHTML += `<div class="comment-item"><b>Вы (${userTelegram}):</b> ${replyText}</div>`;
+            document.getElementById('replyInput').value = '';
+        }
+
         function filterCards(category, element) {
             document.querySelectorAll('.filter-chip').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
+
+            let cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                let status = card.getAttribute('data-status');
+                if (category === 'all' || status === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         }
     </script>
 </body>
