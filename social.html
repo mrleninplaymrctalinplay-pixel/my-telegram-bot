@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GreeLand - Соцсеть</title>
+    <title>GreeLand - Roblox Brookhaven RP</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -67,11 +67,17 @@
         .profile-card { background: #161616; border: 1px solid #333; padding: 20px; border-radius: 16px; text-align: center; }
         .profile-avatar-big { width: 80px; height: 80px; border-radius: 50%; background: #333; margin: 0 auto 12px auto; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 24px; }
         .profile-avatar-big img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .profile-username { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+        .profile-rp-status { font-size: 12px; color: #3ba55d; background: rgba(59, 165, 93, 0.1); padding: 4px 10px; border-radius: 20px; display: inline-block; margin-bottom: 15px; border: 1px solid rgba(59, 165, 93, 0.2); }
+
         .stats-row { display: flex; justify-content: space-around; margin: 15px 0; font-size: 13px; }
         .stat-num { font-weight: bold; font-size: 15px; display: block; }
 
         .friends-list, .chat-list { display: flex; flex-direction: column; gap: 8px; }
         .friend-row { display: flex; justify-content: space-between; align-items: center; background: #161616; padding: 10px 14px; border-radius: 10px; border: 1px solid #222; font-size: 13px; }
+        .friend-info-sub { font-size: 11px; color: #888; display: block; margin-top: 2px; }
+        
         .btn-action { background: #fff; color: #000; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 11px; cursor: pointer; }
         .btn-action.unfollow { background: #333; color: #fff; }
 
@@ -95,7 +101,6 @@
         .btn-submit { width: 100%; background: #fff; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 600; font-size: 14px; margin-top: 10px; cursor: pointer; }
         .btn-close { width: 100%; background: transparent; color: #888; border: none; padding: 10px; margin-top: 5px; cursor: pointer; font-size: 13px; }
         
-        /* Стили для раздела Настройки */
         .settings-menu { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
         .setting-btn { background: #222; color: #fff; border: 1px solid #333; padding: 12px 16px; border-radius: 10px; text-align: left; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .setting-btn:active { background: #333; }
@@ -103,14 +108,14 @@
 </head>
 <body>
 
-    <!-- Регистрация (показывается только если юзер не залогинен) -->
+    <!-- Экран регистрации -->
     <div id="reg-screen" style="display: none;">
         <div class="reg-box">
-            <h2>Регистрация</h2>
-            <p>Придумайте юзернейм (от 5 до 12 символов)</p>
-            <input type="text" id="reg-input" placeholder="Ваш юзернейм...">
+            <h2>GreeLand Brookhaven</h2>
+            <p>Введите ваш РП-юзернейм (от 5 до 12 символов)</p>
+            <input type="text" id="reg-input" placeholder="Например: @alex_rp">
             <div class="error-text" id="reg-error">От 5 до 12 символов!</div>
-            <button class="btn-submit" onclick="registerUser()">Войти в соцсеть</button>
+            <button class="btn-submit" onclick="registerUser()">Начать игру</button>
         </div>
     </div>
 
@@ -135,11 +140,11 @@
                     <span class="like-btn" onclick="toggleLike(this)">🤍</span>
                 </div>
                 <div class="likes-count"><span>1247</span> отметок «Нравится»</div>
-                <div class="post-caption"><b>greeland_official</b> Официальная соцсеть проекта GreeLand открыта! Делитесь кадрами 🌴✨</div>
+                <div class="post-caption"><b>greeland_official</b> Сервер Brookhaven 24/7 открыт! Залетайте на РП-сходку 🌴✨</div>
                 
                 <div class="comments-section" id="comments-initial">
                     <div class="comment-item" id="c-init" data-commenter="admin">
-                        <div class="comment-content"><b>admin:</b> Добро пожаловать!</div>
+                        <div class="comment-content"><b>admin:</b> Всем приятной игры!</div>
                         <div class="comment-controls">
                             <span class="del-comment" onclick="deleteComment('c-init', 'admin', 'greeland_official')">✕</span>
                         </div>
@@ -155,11 +160,14 @@
 
     <!-- Друзья -->
     <div id="screen-friends" class="screen">
-        <div class="header"><div class="logo">Люди и друзья</div><button class="btn-create" onclick="openModal('addFriendModal')">+ Найти</button></div>
+        <div class="header"><div class="logo">Жители сервера</div><button class="btn-create" onclick="openModal('addFriendModal')">+ Найти</button></div>
         <div class="section-padding">
             <div class="friends-list" id="friends-container">
                 <div class="friend-row" id="fr-alex">
-                    <span>@alex_pro</span> 
+                    <div>
+                        <span>@alex_pro</span>
+                        <span class="friend-info-sub">🏠 Дом в Брукхейвене (ID: 482)</span>
+                    </div>
                     <button class="btn-action" onclick="toggleFollow('alex_pro', this)">Подписаться</button>
                 </div>
             </div>
@@ -201,7 +209,8 @@
         <div class="section-padding">
             <div class="profile-card">
                 <div class="profile-avatar-big" id="profile-avatar-view">👤</div>
-                <h3 id="profile-username-view">@user</h3>
+                <div class="profile-username" id="profile-username-view">@user</div>
+                <div class="profile-rp-status" id="profile-rp-status-view">🏠 В Брукхейвене • Без роли</div>
                 
                 <div class="stats-row">
                     <div><span class="stat-num" id="stat-posts">1</span>посты</div>
@@ -227,7 +236,7 @@
         <div class="modal-content">
             <h3>Новая публикация</h3>
             <div class="form-group"><label>Ссылка на фото (URL):</label><input type="text" id="postImage" placeholder="https://..."></div>
-            <div class="form-group"><label>Описание:</label><textarea id="postCaption" placeholder="Что нового?"></textarea></div>
+            <div class="form-group"><label>Описание:</label><textarea id="postCaption" placeholder="Что происходит в РП?"></textarea></div>
             <button class="btn-submit" onclick="publishPost()">Поделиться</button>
             <button class="btn-close" onclick="closeModal('createModal')">Отмена</button>
         </div>
@@ -235,7 +244,7 @@
 
     <div id="addFriendModal" class="modal">
         <div class="modal-content">
-            <h3>Найти пользователя</h3>
+            <h3>Найти жителя</h3>
             <div class="form-group"><label>Юзернейм:</label><input type="text" id="friendInput" placeholder="@username"></div>
             <button class="btn-submit" onclick="addFriendUser()">Добавить</button>
             <button class="btn-close" onclick="closeModal('addFriendModal')">Отмена</button>
@@ -251,29 +260,43 @@
         </div>
     </div>
 
-    <!-- Новое модальное окно: Настройки -->
+    <!-- Меню Настроек -->
     <div id="settingsModal" class="modal">
         <div class="modal-content">
-            <h3>Настройки аккаунта</h3>
+            <h3>Настройки РП-профиля</h3>
             <div class="settings-menu">
                 <button class="setting-btn" onclick="openChangeUsernameModal()">✏️ Изменить юзернейм <span>›</span></button>
+                <button class="setting-btn" onclick="openChangeStatusModal()">🏷️ Изменить РП-статус <span>›</span></button>
                 <button class="setting-btn" style="color: #ff4d4d; border-color: #551a1a;" onclick="logoutUser()">🚪 Выйти из аккаунта</button>
             </div>
             <button class="btn-close" onclick="closeModal('settingsModal')" style="margin-top: 15px;">Закрыть</button>
         </div>
     </div>
 
-    <!-- Модальное окно смены юзернейма -->
+    <!-- Смена юзернейма -->
     <div id="changeUsernameModal" class="modal">
         <div class="modal-content">
             <h3>Сменить юзернейм</h3>
             <div class="form-group">
                 <label>Новый юзернейм (5-12 символов):</label>
-                <input type="text" id="new-username-input" placeholder="@new_username">
+                <input type="text" id="new-username-input" placeholder="@new_name">
             </div>
             <div class="error-text" id="change-error" style="display:none;">От 5 до 12 символов!</div>
             <button class="btn-submit" onclick="saveNewUsername()">Сохранить</button>
             <button class="btn-close" onclick="closeModal('changeUsernameModal')">Назад</button>
+        </div>
+    </div>
+
+    <!-- Смена РП-статуса -->
+    <div id="changeStatusModal" class="modal">
+        <div class="modal-content">
+            <h3>Изменить РП-статус</h3>
+            <div class="form-group">
+                <label>Ваш статус (например: Работаю в полиции / Дом №42):</label>
+                <input type="text" id="new-status-input" placeholder="Например: 🚔 Полицейский Brookhaven">
+            </div>
+            <button class="btn-submit" onclick="saveNewStatus()">Сохранить статус</button>
+            <button class="btn-close" onclick="closeModal('changeStatusModal')">Назад</button>
         </div>
     </div>
 
@@ -284,6 +307,7 @@
         let currentUser = {
             username: "",
             avatar: "",
+            rpStatus: "🏠 В Брукхейвене • Без роли",
             postsCount: 1,
             followersCount: 0,
             followingCount: 0
@@ -293,24 +317,30 @@
         let blockedUsers = {}; 
         let bannedCommenters = {}; 
 
-        // Проверка при загрузке: залогинен ли пользователь раньше
         window.onload = function() {
             let savedUser = localStorage.getItem('greeland_username');
             let savedAvatar = localStorage.getItem('greeland_avatar');
+            let savedStatus = localStorage.getItem('greeland_status');
 
             if (savedUser) {
                 currentUser.username = savedUser;
                 if (savedAvatar) currentUser.avatar = savedAvatar;
+                if (savedStatus) currentUser.rpStatus = savedStatus;
                 
-                document.getElementById('profile-username-view').innerText = currentUser.username;
-                if(currentUser.avatar) {
-                    document.getElementById('profile-avatar-view').innerHTML = `<img src="${currentUser.avatar}">`;
-                }
+                updateProfileUI();
                 document.getElementById('reg-screen').style.display = 'none';
             } else {
                 document.getElementById('reg-screen').style.display = 'flex';
             }
         };
+
+        function updateProfileUI() {
+            document.getElementById('profile-username-view').innerText = currentUser.username;
+            document.getElementById('profile-rp-status-view').innerText = currentUser.rpStatus;
+            if(currentUser.avatar) {
+                document.getElementById('profile-avatar-view').innerHTML = `<img src="${currentUser.avatar}">`;
+            }
+        }
 
         function registerUser() {
             let val = document.getElementById('reg-input').value.trim();
@@ -319,10 +349,10 @@
             
             currentUser.username = val.startsWith('@') ? val : '@' + val;
             
-            // Сохраняем в память устройства
             localStorage.setItem('greeland_username', currentUser.username);
+            localStorage.setItem('greeland_status', currentUser.rpStatus);
 
-            document.getElementById('profile-username-view').innerText = currentUser.username;
+            updateProfileUI();
             document.getElementById('reg-screen').style.display = 'none';
         }
 
@@ -339,16 +369,33 @@
 
             currentUser.username = val.startsWith('@') ? val : '@' + val;
             localStorage.setItem('greeland_username', currentUser.username);
-            document.getElementById('profile-username-view').innerText = currentUser.username;
+            updateProfileUI();
 
             closeModal('changeUsernameModal');
             alert('Юзернейм успешно изменен!');
         }
 
+        function openChangeStatusModal() {
+            closeModal('settingsModal');
+            document.getElementById('new-status-input').value = currentUser.rpStatus;
+            openModal('changeStatusModal');
+        }
+
+        function saveNewStatus() {
+            let val = document.getElementById('new-status-input').value.trim();
+            if (!val) return;
+
+            currentUser.rpStatus = val;
+            localStorage.setItem('greeland_status', currentUser.rpStatus);
+            updateProfileUI();
+
+            closeModal('changeStatusModal');
+            alert('РП-статус обновлен!');
+        }
+
         function logoutUser() {
             if (confirm("Вы действительно хотите выйти из аккаунта?")) {
-                localStorage.removeItem('greeland_username');
-                localStorage.removeItem('greeland_avatar');
+                localStorage.clear();
                 location.reload();
             }
         }
@@ -372,7 +419,7 @@
                 reader.onload = function (e) {
                     currentUser.avatar = e.target.result;
                     localStorage.setItem('greeland_avatar', currentUser.avatar);
-                    document.getElementById('profile-avatar-view').innerHTML = `<img src="${currentUser.avatar}">`;
+                    updateProfileUI();
                     closeModal('editProfileModal');
                 }
                 reader.readAsDataURL(fileInput.files[0]);
@@ -487,7 +534,13 @@
             let container = document.getElementById('friends-container');
             let row = document.createElement('div');
             row.className = 'friend-row';
-            row.innerHTML = `<span>${formatted}</span> <button class="btn-action" onclick="toggleFollow('${formatted}', this)">Подписаться</button>`;
+            row.innerHTML = `
+                <div>
+                    <span>${formatted}</span>
+                    <span class="friend-info-sub">🏠 Житель Brookhaven</span>
+                </div>
+                <button class="btn-action" onclick="toggleFollow('${formatted}', this)">Подписаться</button>
+            `;
             container.appendChild(row);
 
             let chatList = document.querySelector('.chat-list');
