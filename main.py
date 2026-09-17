@@ -13,6 +13,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import (
     BufferedInputFile,
+    BotCommand,  # Импортируем для настройки подсказки команд
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -34,7 +35,7 @@ class RejectState(StatesGroup):
     waiting_for_reason = State()
 
 class ComplaintState(StatesGroup):
-    waiting_for_violation = State()   # Суть нарушения (например: НФ / оскорбление)
+    waiting_for_violation = State()   # Суть нарушения
     waiting_for_description = State() # Описание ситуации
     waiting_for_photo = State()       # Скриншот доказательство
 
@@ -109,7 +110,7 @@ TEXTS = {
         "no_char": "❌ У вас пока нет зарегистрированного персонажа.",
         "deleted": "🗑 Ваш профиль персонажа успешно удален!",
         "submitted": "🎉 **Анкета успешно отправлена!**\n\nВаша заявка передана администраторам на проверку.",
-        "help": "📖 **Список команд:**\n\n• `/start` — Главное меню\n• `/profile` — Профиль персонажа\n• `/delete` — Удалить персонажа\n• `/language` — Сменить язык",
+        "help": "📖 **Список команд:**\n\n• `/menu` — Главное меню\n• `/profile` — Профиль персонажа\n• `/delete` — Удалить персонажа\n• `/language` — Сменить язык\n• `/help` — Справка",
         "status_approved": "✅ Одобрено",
         "status_pending": "⏳ На проверке",
         "status_rejected": "❌ Отклонено"
@@ -127,7 +128,7 @@ TEXTS = {
         "no_char": "❌ You don't have a registered character yet.",
         "deleted": "🗑 Your character profile has been deleted!",
         "submitted": "🎉 **Registration Submitted Successfully!**\n\nYour application has been sent to administrators for verification.",
-        "help": "📖 **Command List:**\n\n• `/start` — Main Menu\n• `/profile` — View Profile\n• `/delete` — Delete character\n• `/language` — Change language",
+        "help": "📖 **Command List:**\n\n• `/menu` — Main Menu\n• `/profile` — View Profile\n• `/delete` — Delete character\n• `/language` — Change language\n• `/help` — Help",
         "status_approved": "✅ Approved",
         "status_pending": "⏳ Under Review",
         "status_rejected": "❌ Rejected"
@@ -161,7 +162,6 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
     else:
         text = t["start"]
 
-    # Меню в точности как на вашем скриншоте
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🟢 Создание персонажа", web_app=WebAppInfo(url=localized_webapp_url))],
         [InlineKeyboardButton(text="💎 PlazaVK (соцсеть)", callback_data="plazavk_menu")],
@@ -182,6 +182,13 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
         await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
 # ==================== ХЕНДЛЕРЫ МЕНЮ И КОМАНД ====================
+
+@router.message(Command("menu"))
+@router.callback_query(F.data == "go_main_menu")
+async def cmd_menu(event: Message | CallbackQuery):
+    user_id = event.from_user.id
+    lang = get_user_lang(user_id)
+    await show_main_menu(event, user_id, lang)
 
 @router.message(Command("language"))
 @router.callback_query(F.data == "change_language")
@@ -214,24 +221,22 @@ async def cmd_start(message: Message):
     else:
         await show_main_menu(message, user_id, row[0] or "ru")
 
-@router.callback_query(F.data == "go_main_menu")
-async def process_go_main_menu(callback: CallbackQuery):
-    lang = get_user_lang(callback.from_user.id)
-    await show_main_menu(callback, callback.from_user.id, lang)
-
 @router.callback_query(F.data == "plazavk_menu")
 async def plazavk_handler(callback: CallbackQuery):
-    await callback.message.answer("💎 **PlazaVK**\n\nРаздел находится в разработке.", parse_mode="Markdown")
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]])
+    await callback.message.edit_text("💎 **PlazaVK**\n\nРаздел находится в разработке.", reply_markup=kb, parse_mode="Markdown")
     await callback.answer()
 
 @router.callback_query(F.data == "darknet_menu")
 async def darknet_handler(callback: CallbackQuery):
-    await callback.message.answer("⚫️ **Даркнет**\n\nДобро пожаловать в теневую сеть.", parse_mode="Markdown")
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]])
+    await callback.message.edit_text("⚫️ **Даркнет**\n\nДобро пожаловать в теневую сеть.", reply_markup=kb, parse_mode="Markdown")
     await callback.answer()
 
 @router.callback_query(F.data == "irp_list")
 async def irp_handler(callback: CallbackQuery):
-    await callback.message.answer("🔵 **IRP список**\n\nСписок актуальных данных.", parse_mode="Markdown")
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]])
+    await callback.message.edit_text("🔵 **IRP список**\n\nСписок актуальных данных.", reply_markup=kb, parse_mode="Markdown")
     await callback.answer()
 
 @router.message(Command("help"))
@@ -311,7 +316,7 @@ async def cmd_delete_character(event: Message | CallbackQuery, state: FSMContext
 @router.callback_query(F.data == "start_complaint")
 async def start_complaint(callback: CallbackQuery, state: FSMContext):
     await state.set_state(ComplaintState.waiting_for_violation)
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data="go_main_menu")]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Отмена", callback_data="go_main_menu")]])
     await callback.message.edit_text(
         "🔴 **Подача жалобы**\n\nУкажите суть нарушения (например: *НФ / оскорбление в нрп чате*):",
         reply_markup=kb,
@@ -369,7 +374,6 @@ async def process_complaint_photo(message: Message, state: FSMContext, bot: Bot)
 async def process_complaint_wrong_media(message: Message):
     await message.answer("⚠️ Пожалуйста, отправьте именно **изображение (скриншот)**.")
 
-# Обработка принятия/отклонения жалобы администратором
 @router.callback_query(F.data.startswith("accept_comp_"))
 async def accept_complaint(callback: CallbackQuery, bot: Bot):
     target_id = int(callback.data.split("_")[2])
@@ -446,7 +450,6 @@ async def handle_web_app_data(message: Message, bot: Bot):
     except Exception as e:
         await message.answer(f"❌ Ошибка обработки: {e}")
 
-# Одобрение анкеты
 @router.callback_query(F.data.startswith("approve_"))
 async def approve_user(callback: CallbackQuery, bot: Bot):
     target_id = int(callback.data.split("_")[1])
@@ -473,7 +476,17 @@ async def approve_user(callback: CallbackQuery, bot: Bot):
 
     await callback.message.edit_text(callback.message.text + "\n\n✅ **ОДОБРЕНО**")
 
-# ==================== ЗАПУСК ====================
+# ==================== НАСТРОЙКА ПОДСКАЗОК КОМАНД И ЗАПУСК ====================
+
+async def set_bot_commands(bot: Bot):
+    commands = [
+        BotCommand(command="menu", description="Главное меню"),
+        BotCommand(command="profile", description="Профиль персонажа"),
+        BotCommand(command="delete", description="Удалить персонажа"),
+        BotCommand(command="language", description="Сменить язык / Change language"),
+        BotCommand(command="help", description="Справка и команды"),
+    ]
+    await bot.set_my_commands(commands)
 
 async def handle_health_check(request):
     return web.Response(text="Bot is running!")
@@ -482,6 +495,9 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(router)
+
+    # Устанавливаем подсказки команд для всплывающего меню при вводе '/'
+    await set_bot_commands(bot)
 
     app = web.Application()
     app.router.add_get("/", handle_health_check)
