@@ -9,7 +9,6 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, W
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# Ваш реальный токен бота от BotFather
 TOKEN = "8996747986:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sl"
 
 SOCIAL_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/social.html"
@@ -19,7 +18,6 @@ REGISTER_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-# Хранилище анкет игроков
 user_profiles = {}
 
 @dp.message(CommandStart())
@@ -76,7 +74,6 @@ async def command_profile_handler(message: Message) -> None:
     )
     await message.answer(text)
 
-# Получение данных анкеты из Mini App (register.html)
 @dp.message(F.web_app_data)
 async def handle_web_app_data(message: Message):
     try:
@@ -89,7 +86,6 @@ async def handle_web_app_data(message: Message):
     except Exception as e:
         await message.answer("⚠️ Ошибка при обработке данных анкеты.")
 
-# Веб-сервер для Render (чтобы порт не простаивал)
 async def handle(request):
     return web.Response(text="Bot is running!")
 
