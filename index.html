@@ -3,225 +3,224 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GreeLand ID Registration</title>
-  <!-- Telegram WebApp SDK -->
+  <title>Canadian Character Registration</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    :root {
-      --bg-color: #f4f6f9;
-      --card-bg: #ffffff;
-      --text-color: #1c1e21;
-      --input-bg: #f0f2f5;
-      --accent-color: #0088cc;
-      --border-color: #dcdfe6;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      margin: 0;
-      padding: 16px;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      background: linear-gradient(135deg, #1b0000, #4a0e0e);
+      color: #2b2b2b;
+      min-height: 100vh;
       display: flex;
       justify-content: center;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 420px;
-      background: var(--card-bg);
-      border-radius: 16px;
+      align-items: center;
       padding: 20px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-      box-sizing: border-box;
+      overflow-x: hidden;
     }
-
-    h2 {
-      margin-top: 0;
-      margin-bottom: 20px;
+    .leaves-container {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 1;
+    }
+    .leaf {
+      position: absolute; top: -10%; user-select: none;
+      animation: fall linear infinite; opacity: 0.8;
+    }
+    @keyframes fall {
+      0% { transform: translateY(0vh) rotate(0deg) translateX(0px); opacity: 0.9; }
+      50% { transform: translateY(50vh) rotate(180deg) translateX(50px); }
+      100% { transform: translateY(110vh) rotate(360deg) translateX(-30px); opacity: 0.2; }
+    }
+    .paper-form {
+      position: relative; z-index: 10; background: #fbf8ef;
+      background-image: radial-gradient(#e2d9c8 1px, transparent 1px);
+      background-size: 20px 20px; width: 100%; max-width: 480px;
+      padding: 30px 25px; border-radius: 4px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 40px rgba(180, 160, 130, 0.3);
+      border: 2px solid #d4af37;
+    }
+    .paper-header {
+      text-align: center; border-bottom: 2px dashed #b5a48b;
+      padding-bottom: 15px; margin-bottom: 20px; position: relative;
+    }
+    .paper-header h1 { font-size: 20px; color: #8b0000; text-transform: uppercase; }
+    .paper-header p { font-size: 13px; color: #555; margin-top: 5px; font-style: italic; }
+    .pen-icon { position: absolute; top: -10px; right: -5px; font-size: 24px; transform: rotate(-45deg); }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-weight: bold; font-size: 14px; color: #4a3b32; margin-bottom: 6px; }
+    input, select, textarea {
+      width: 100%; padding: 10px 12px; background: rgba(255, 255, 255, 0.8);
+      border: 1px solid #b5a48b; border-bottom: 2px solid #8b0000;
+      border-radius: 3px; font-family: inherit; font-size: 14px; color: #111; outline: none;
+    }
+    /* Рукописный стиль для поля подписи */
+    input.signature-input {
+      font-family: 'Brush Script MT', 'Courier New', cursive;
       font-size: 20px;
-      text-align: center;
+      letter-spacing: 1px;
+      color: #000080;
     }
-
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #555;
-    }
-
-    label .required {
-      color: #e53935;
-    }
-
-    input[type="text"],
-    input[type="date"],
-    select,
-    textarea {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      background-color: var(--input-bg);
-      font-size: 14px;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--accent-color);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
-    }
-
-    /* Photo Upload Box */
-    .photo-upload {
-      border: 2px dashed var(--border-color);
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      background-color: var(--input-bg);
-      cursor: pointer;
-      position: relative;
-    }
-
-    .photo-upload input[type="file"] {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
-      cursor: pointer;
-    }
-
-    .photo-preview {
-      max-width: 100%;
-      max-height: 150px;
-      border-radius: 8px;
-      display: none;
-      margin-top: 10px;
-    }
-
+    textarea { resize: vertical; min-height: 80px; }
     .submit-btn {
-      width: 100%;
-      background-color: var(--accent-color);
-      color: #fff;
-      border: none;
-      padding: 14px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-
-    .submit-btn:active {
-      opacity: 0.85;
+      width: 100%; padding: 12px; background: #8b0000; color: #ffffff;
+      border: none; border-radius: 4px; font-size: 16px; font-weight: bold;
+      cursor: pointer; font-family: inherit; margin-top: 10px;
+      box-shadow: 0 4px 10px rgba(139, 0, 0, 0.4);
     }
   </style>
 </head>
 <body>
+  <div class="leaves-container" id="leaves"></div>
 
-  <div class="container">
-    <h2>Character Registration</h2>
+  <div class="paper-form">
+    <div class="paper-header">
+      <span class="pen-icon">✒️</span>
+      <h1 id="title">🇨🇦 APPLICATION FORM</h1>
+      <p id="subtitle">Government of Canada / Character Registration</p>
+    </div>
 
     <form id="regForm">
-      <!-- Roblox Username -->
       <div class="form-group">
-        <label>Roblox Username <span class="required">*</span></label>
-        <input type="text" id="robloxNick" placeholder="Player_1" required>
+        <label id="lbl_roblox">Roblox Username:</label>
+        <input type="text" id="robloxNick" required placeholder="e.g. Player123">
       </div>
 
-      <!-- Character Full Name (Canadian format) -->
       <div class="form-group">
-        <label>Character Full Name <span class="required">*</span></label>
-        <input type="text" id="fullName" placeholder="e.g., John Smith" required>
+        <label id="lbl_fullname">Full Name:</label>
+        <input type="text" id="fullName" required placeholder="e.g. John Doe">
       </div>
 
-      <!-- Date of Birth -->
       <div class="form-group">
-        <label>Date of Birth <span class="required">*</span></label>
+        <label id="lbl_dob">Date of Birth:</label>
         <input type="date" id="dob" required>
       </div>
 
-      <!-- Gender -->
       <div class="form-group">
-        <label>Gender <span class="required">*</span></label>
+        <label id="lbl_gender">Gender:</label>
         <select id="gender" required>
-          <option value="" disabled selected>Select gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
+          <option value="" disabled selected id="opt_select">Select gender...</option>
+          <option value="Male" id="opt_male">Male</option>
+          <option value="Female" id="opt_female">Female</option>
         </select>
       </div>
 
-      <!-- Biography -->
       <div class="form-group">
-        <label>Biography <span class="required">*</span></label>
-        <textarea id="bio" placeholder="Character history & background..." required></textarea>
+        <label id="lbl_bio">Character Biography:</label>
+        <textarea id="bio" required placeholder="Short background story..."></textarea>
       </div>
 
-      <!-- Character Photo -->
+      <!-- ПОЛЕ ПОДПИСИ -->
       <div class="form-group">
-        <label>Character Photo</label>
-        <div class="photo-upload">
-          <div id="uploadText">
-            📁 <b>Click to upload photo</b><br>
-            <small style="color: #777;">PNG, JPG up to 3MB</small>
-          </div>
-          <input type="file" id="photoInput" accept="image/*" onchange="previewImage(event)">
-          <img id="photoPreview" class="photo-preview" alt="Preview">
-        </div>
+        <label id="lbl_signature">Official Signature (English letters):</label>
+        <input type="text" id="signature" class="signature-input" required placeholder="J. Doe" pattern="[A-Za-z\s\.\'-]+" title="Please use English letters only">
       </div>
 
-      <button type="submit" class="submit-btn">Submit Registration</button>
+      <button type="submit" class="submit-btn" id="btn_submit">✍️ Submit Application</button>
     </form>
   </div>
 
   <script>
     const tg = window.Telegram.WebApp;
-    tg.expand(); // Раскрыть окно на весь экран
+    tg.expand();
 
-    function previewImage(event) {
-      const file = event.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = document.getElementById('photoPreview');
-          img.src = e.target.value;
-          img.style.display = 'block';
-          document.getElementById('uploadText').style.display = 'none';
-        }
-        reader.readAsDataURL(file);
+    const i18n = {
+      ru: {
+        title: "🇨🇦 РЕГИСТРАЦИОННЫЙ БЛАНК",
+        subtitle: "Правительство Канады / Анкета Персонажа",
+        roblox: "Никнейм в Roblox:",
+        fullname: "Имя и Фамилия персонажа:",
+        dob: "Дата рождения:",
+        gender: "Пол:",
+        select_g: "Выберите пол...",
+        male: "Мужской", female: "Женский",
+        bio: "Биография персонажа:",
+        signature: "Личная подпись (англ. буквами):",
+        submit: "✍️ Подписать и отправить"
+      },
+      uk: {
+        title: "🇨🇦 РЕЄСТРАЦІЙНИЙ БЛАНК",
+        subtitle: "Уряд Канади / Анкета Персонажа",
+        roblox: "Нікнейм у Roblox:",
+        fullname: "Ім'я та Прізвище персонажа:",
+        dob: "Дата народження:",
+        gender: "Стать:",
+        select_g: "Оберіть стать...",
+        male: "Чоловіча", female: "Жіноча",
+        bio: "Біографія персонажа:",
+        signature: "Особистий підпис (англ. літерами):",
+        submit: "✍️ Підписати та надіслати"
+      },
+      en: {
+        title: "🇨🇦 APPLICATION FORM",
+        subtitle: "Government of Canada / Character Registration",
+        roblox: "Roblox Username:",
+        fullname: "Character Full Name:",
+        dob: "Date of Birth:",
+        gender: "Gender:",
+        select_g: "Select gender...",
+        male: "Male", female: "Female",
+        bio: "Character Biography:",
+        signature: "Official Signature (English letters):",
+        submit: "✍️ Submit Application"
+      },
+      kk: {
+        title: "🇨🇦 ТІРКЕУ БЛАНКІСІ",
+        subtitle: "Канада Үкіметі / Кейіпкер сауалнамасы",
+        roblox: "Roblox никнеймі:",
+        fullname: "Кейіпкердің толық аты-жөні:",
+        dob: "Туған күні:",
+        gender: "Жынысы:",
+        select_g: "Жынысты таңдаңыз...",
+        male: "Ер", female: "Әйел",
+        bio: "Кейіпкер өмірбаяны:",
+        signature: "Жеке қолтаңба (ағылшын әріптерімен):",
+        submit: "✍️ Қол қою және жіберу"
       }
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const lang = urlParams.get('lang') || 'en';
+    const t = i18n[lang] || i18n['en'];
+
+    document.getElementById('title').innerText = t.title;
+    document.getElementById('subtitle').innerText = t.subtitle;
+    document.getElementById('lbl_roblox').innerText = t.roblox;
+    document.getElementById('lbl_fullname').innerText = t.fullname;
+    document.getElementById('lbl_dob').innerText = t.dob;
+    document.getElementById('lbl_gender').innerText = t.gender;
+    document.getElementById('opt_select').innerText = t.select_g;
+    document.getElementById('opt_male').innerText = t.male;
+    document.getElementById('opt_female').innerText = t.female;
+    document.getElementById('lbl_bio').innerText = t.bio;
+    document.getElementById('lbl_signature').innerText = t.signature;
+    document.getElementById('btn_submit').innerText = t.submit;
+
+    // Падающие канадские листья
+    const leavesContainer = document.getElementById('leaves');
+    for (let i = 0; i < 18; i++) {
+      const leaf = document.createElement('div');
+      leaf.className = 'leaf';
+      leaf.innerText = '🍁';
+      leaf.style.left = Math.random() * 100 + '%';
+      leaf.style.animationDuration = (5 + Math.random() * 6) + 's';
+      leaf.style.animationDelay = (Math.random() * 4) + 's';
+      leaf.style.fontSize = (16 + Math.random() * 18) + 'px';
+      leavesContainer.appendChild(leaf);
     }
 
     document.getElementById('regForm').addEventListener('submit', function(e) {
       e.preventDefault();
-
       const data = {
         robloxNick: document.getElementById('robloxNick').value,
         fullName: document.getElementById('fullName').value,
         dob: document.getElementById('dob').value,
         gender: document.getElementById('gender').value,
-        bio: document.getElementById('bio').value
+        bio: document.getElementById('bio').value,
+        signature: document.getElementById('signature').value
       };
-
-      // Отправка данных обратно в бота Telegram
       tg.sendData(JSON.stringify(data));
       tg.close();
     });
   </script>
 </body>
 </html>
-
