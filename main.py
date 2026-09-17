@@ -1,17 +1,26 @@
 import asyncio
+import json
 import logging
 import sqlite3
 
 from aiogram import Bot, Dispatcher, F, Router
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    WebAppInfo,
+)
 
 # ==================== НАСТРОЙКИ ====================
 BOT_TOKEN = "8996747968:AAHdVCmUIASZNhaUj-qp1m-JsRrqIq8udII"
 ADMIN_CHAT_ID = 644112527
+
+# Ваша ссылка на GitHub Pages из раздела Settings -> Pages
+WEB_APP_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,107 +32,82 @@ cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
     user_id INTEGER PRIMARY KEY,
     username TEXT,
+    roblox_nick TEXT,
     fio TEXT,
-    gender TEXT,
     birth_date TEXT,
-    citizenship TEXT,
-    fraction TEXT,
+    gender TEXT,
     bio TEXT,
-    social_status TEXT,
-    photo TEXT,
-    signature TEXT,
-    document_type TEXT,
-    issue_reason TEXT,
-    delivery_type TEXT,
     status TEXT
 )
 """)
 conn.commit()
-
-# ==================== СОСТОЯНИЯ (12 шагов) ====================
-class Registration(StatesGroup):
-    step1_fio = State()
-    step2_gender = State()
-    step3_birth_date = State()
-    step4_citizenship = State()
-    step5_fraction = State()
-    step6_bio = State()
-    step7_social_status = State()
-    step8_photo = State()
-    step9_signature = State()
-    step10_doc_type = State()
-    step11_issue_reason = State()
-    step12_delivery_type = State()
 
 router = Router()
 
 # ==================== СПРАВКА И КОМАНДЫ ====================
 
 HELP_TEXT = (
-    "📖 **Список доступных команд:**\n\n"
-    "• `/start` — Запустить бота и открыть главное меню\n"
-    "• `/help` — Показать эту справку по командам\n"
-    "• `/profile` — Посмотреть карточку своего РП-персонажа\n"
-    "• `/delete` или `/reset` — Удалить персонажа и сбросить анкету"
+    "📖 **Command List / Список команд:**\n\n"
+    "• `/start` — Open main menu / Открыть главное меню\n"
+    "• `/help` — Show command list / Показать справку\n"
+    "• `/profile` — View character profile / Посмотреть профиль\n"
+    "• `/delete` — Reset character & re-register / Сбросить и заново зарегистрироваться"
 )
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
-    await message.answer(HELP_TEXT)
+    await message.answer(HELP_TEXT, parse_mode="Markdown")
 
 @router.callback_query(F.data == "show_help")
 async def process_show_help(callback: CallbackQuery):
-    await callback.message.answer(HELP_TEXT)
+    await callback.message.answer(HELP_TEXT, parse_mode="Markdown")
 
 # ==================== ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ ====================
-
-async def get_profile_data(user_id: int):
-    cursor.execute("""
-    SELECT fio, gender, birth_date, citizenship, fraction, bio, 
-           social_status, photo, signature, document_type, issue_reason, delivery_type, status 
-    FROM users WHERE user_id = ?
-    """, (user_id,))
-    return cursor.fetchone()
 
 @router.message(Command("profile"))
 @router.callback_query(F.data == "show_profile")
 async def show_profile_handler(event: Message | CallbackQuery):
     user_id = event.from_user.id
-    user = await get_profile_data(user_id)
+    cursor.execute("""
+    SELECT roblox_nick, fio, birth_date, gender, bio, status 
+    FROM users WHERE user_id = ?
+    """, (user_id,))
+    user = cursor.fetchone()
 
     if not user:
-        text = "❌ У вас пока нет созданного персонажа. Нажмите /start, чтобы зарегистрироваться."
+        text = "❌ You don't have a registered character yet. Click below to start:"
         kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
+            InlineKeyboardButton(
+                text="📝 Register Character (Web App)", 
+                web_app=WebAppInfo(url=WEB_APP_URL)
+            )
         ]])
     else:
-        status_map = {"approved": "✅ Одобрена", "pending": "⏳ На проверке", "rejected": "❌ Отклонена"}
-        status_str = status_map.get(user[12], "Неизвестно")
+        status_map = {
+            "approved": "✅ Approved / Одобрено", 
+            "pending": "⏳ Under Review / На проверке", 
+            "rejected": "❌ Rejected / Отклонено"
+        }
+        status_str = status_map.get(user[5], "Unknown")
 
         text = (
-            f"👤 **Карточка РП-персонажа** (Статус: {status_str})\n\n"
-            f"1. **ФИО:** {user[0]}\n"
-            f"2. **Пол:** {user[1]}\n"
-            f"3. **Дата рождения:** {user[2]}\n"
-            f"4. **Гражданство:** {user[3]}\n"
-            f"5. **Фракция:** {user[4]}\n"
-            f"6. **Биография:** {user[5]}\n"
-            f"7. **Социальный статус:** {user[6]}\n"
-            f"8. **Фото/Внешность:** {user[7]}\n"
-            f"9. **Личная подпись:** {user[8]}\n"
-            f"10. **Тип документа:** {user[9]}\n"
-            f"11. **Причина выдачи:** {user[10]}\n"
-            f"12. **Способ получения:** {user[11]}"
+            f"👤 **Canadian ID Character Profile**\n"
+            f"Status: **{status_str}**\n\n"
+            f"🎮 **Roblox Username:** {user[0]}\n"
+            f"📛 **Full Name:** {user[1]}\n"
+            f"📅 **Date of Birth:** {user[2]}\n"
+            f"⚧ **Gender:** {user[3]}\n"
+            f"📖 **Biography:** {user[4]}"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🗑 Удалить персонажа", callback_data="user_delete_self")],
-            [InlineKeyboardButton(text="◀️ В главное меню", callback_data="go_main_menu")]
+            [InlineKeyboardButton(text="🗑 Delete Character", callback_data="user_delete_self")],
+            [InlineKeyboardButton(text="◀️ Main Menu", callback_data="go_main_menu")]
         ])
 
     if isinstance(event, Message):
-        await event.answer(text, reply_markup=kb)
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
     else:
-        await event.message.edit_text(text, reply_markup=kb)
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
 # ==================== ОБРАБОТЧИКИ СБРОСА И УДАЛЕНИЯ ====================
 
@@ -135,10 +119,14 @@ async def cmd_delete_character(message: Message, state: FSMContext):
     conn.commit()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
+        InlineKeyboardButton(
+            text="📝 Start Registration", 
+            web_app=WebAppInfo(url=WEB_APP_URL)
+        )
     ]])
     await message.answer(
-        "🗑 Ваш РП-персонаж был успешно удалён!\n\nВы можете зарегистрировать нового персонажа с чистого листа.",
+        "🗑 Your RP character profile has been deleted!\n"
+        "You can now submit a new registration.",
         reply_markup=kb
     )
 
@@ -149,14 +137,18 @@ async def process_user_delete_self(callback: CallbackQuery, state: FSMContext):
     conn.commit()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")
+        InlineKeyboardButton(
+            text="📝 Start Registration", 
+            web_app=WebAppInfo(url=WEB_APP_URL)
+        )
     ]])
     await callback.message.edit_text(
-        "🗑 Ваш РП-персонаж успешно удалён.\n\nВы можете начать регистрацию заново:",
+        "🗑 Your RP character profile has been deleted.\n\n"
+        "Click below to fill out the form again:",
         reply_markup=kb
     )
 
-# ==================== СТАРТ И АНКЕТА ====================
+# ==================== СТАРТ И ВЕБ-АПП ====================
 
 @router.message(CommandStart())
 @router.callback_query(F.data == "go_main_menu")
@@ -168,153 +160,77 @@ async def cmd_start(event: Message | CallbackQuery, state: FSMContext):
     if user:
         fio, status = user
         if status == "approved":
-            text = f"✅ У вас уже есть одобренный персонаж: **{fio}**."
+            text = f"✅ You have an active character: **{fio}**."
         else:
-            text = f"⏳ Ваша анкета персонажа **{fio}** находится на рассмотрении."
+            text = f"⏳ Your character registration for **{fio}** is under review."
 
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="👤 Профиль (Моя анкета)", callback_data="show_profile")],
-            [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")],
-            [InlineKeyboardButton(text="🗑 Удалить персонажа", callback_data="user_delete_self")]
+            [InlineKeyboardButton(text="👤 View Profile", callback_data="show_profile")],
+            [InlineKeyboardButton(text="ℹ️ Help / Commands", callback_data="show_help")],
+            [InlineKeyboardButton(text="🗑 Delete Character", callback_data="user_delete_self")]
         ])
     else:
         text = (
-            "👋 Добро пожаловать в бота регистрации канадского паспорта!\n\n"
-            f"{HELP_TEXT}\n\n"
-            "Нажмите кнопку **«🚀 Начать регистрацию»** ниже, чтобы перейти к заполнению анкеты из 12 шагов:"
+            "🇨🇦 **Welcome to the Canadian Passport & Citizen Registration Portal!**\n\n"
+            "Click the button below to fill out your character registration form via the Web Application:"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🚀 Начать регистрацию", callback_data="start_registration")],
-            [InlineKeyboardButton(text="ℹ️ Помощь / Команды", callback_data="show_help")]
+            [InlineKeyboardButton(
+                text="📝 Fill Registration Form", 
+                web_app=WebAppInfo(url=WEB_APP_URL)
+            )],
+            [InlineKeyboardButton(text="ℹ️ Help / Commands", callback_data="show_help")]
         ])
 
     if isinstance(event, Message):
-        await event.answer(text, reply_markup=kb)
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
     else:
-        await event.message.edit_text(text, reply_markup=kb)
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
-@router.callback_query(F.data == "start_registration")
-async def start_registration_callback(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(Registration.step1_fio)
-    await callback.message.answer("📋 Начинаем регистрацию канадского паспорта.\n\n**Шаг 1/12:** Введите Ф.И.О вашего РП-персонажа:")
+# ==================== ПРИЕМ ДАННЫХ ИЗ WEB APP ====================
 
-@router.message(Registration.step1_fio)
-async def process_step1(message: Message, state: FSMContext):
-    await state.update_data(fio=message.text)
-    await state.set_state(Registration.step2_gender)
-    
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Мужской", callback_data="gender_m")],
-        [InlineKeyboardButton(text="Женский", callback_data="gender_f")]
-    ])
-    await message.answer("**Шаг 2/12:** Выберите пол персонажа:", reply_markup=kb)
+@router.message(F.web_app_data)
+async def handle_web_app_data(message: Message, bot: Bot):
+    try:
+        data = json.loads(message.web_app_data.data)
+        user_id = message.from_user.id
+        username = message.from_user.username or "N/A"
 
-@router.callback_query(Registration.step2_gender)
-async def process_step2(callback: CallbackQuery, state: FSMContext):
-    gender = "Мужской" if callback.data == "gender_m" else "Женский"
-    await state.update_data(gender=gender)
-    await callback.message.edit_text(f"Пол: {gender}")
-    
-    await state.set_state(Registration.step3_birth_date)
-    await callback.message.answer("**Шаг 3/12:** Укажите дату рождения (например, 15.05.1995):")
+        roblox_nick = data.get("robloxNick", "N/A")
+        full_name = data.get("fullName", "N/A")
+        dob = data.get("dob", "N/A")
+        gender = data.get("gender", "N/A")
+        bio = data.get("bio", "N/A")
 
-@router.message(Registration.step3_birth_date)
-async def process_step3(message: Message, state: FSMContext):
-    await state.update_data(birth_date=message.text)
-    await state.set_state(Registration.step4_citizenship)
-    await message.answer("**Шаг 4/12:** Укажите гражданство:")
+        cursor.execute("""
+        INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (user_id, username, roblox_nick, full_name, dob, gender, bio, "pending"))
+        conn.commit()
 
-@router.message(Registration.step4_citizenship)
-async def process_step4(message: Message, state: FSMContext):
-    await state.update_data(citizenship=message.text)
-    await state.set_state(Registration.step5_fraction)
-    await message.answer("**Шаг 5/12:** Укажите фракцию/группировку:")
+        # Отправка анкеты админу
+        admin_text = (
+            f"📋 **New Registration Submitted via Web App:**\n"
+            f"👤 From: @{username} (ID: `{user_id}`)\n\n"
+            f"🎮 **Roblox Username:** {roblox_nick}\n"
+            f"📛 **Full Name:** {full_name}\n"
+            f"📅 **Date of Birth:** {dob}\n"
+            f"⚧ **Gender:** {gender}\n"
+            f"📖 **Biography:** {bio}"
+        )
 
-@router.message(Registration.step5_fraction)
-async def process_step5(message: Message, state: FSMContext):
-    await state.update_data(fraction=message.text)
-    await state.set_state(Registration.step6_bio)
-    await message.answer("**Шаг 6/12:** Напишите краткую биографию персонажа:")
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✅ Approve", callback_data=f"approve_{user_id}"),
+            InlineKeyboardButton(text="❌ Reject", callback_data=f"reject_{user_id}")
+        ]])
 
-@router.message(Registration.step6_bio)
-async def process_step6(message: Message, state: FSMContext):
-    await state.update_data(bio=message.text)
-    await state.set_state(Registration.step7_social_status)
-    await message.answer("**Шаг 7/12:** Укажите социальный статус:")
-
-@router.message(Registration.step7_social_status)
-async def process_step7(message: Message, state: FSMContext):
-    await state.update_data(social_status=message.text)
-    await state.set_state(Registration.step8_photo)
-    await message.answer("**Шаг 8/12:** Отправьте ссылку на фото персонажа или опишите его внешность:")
-
-@router.message(Registration.step8_photo)
-async def process_step8(message: Message, state: FSMContext):
-    await state.update_data(photo=message.text)
-    await state.set_state(Registration.step9_signature)
-    await message.answer("**Шаг 9/12:** Введите личную подпись персонажа:")
-
-@router.message(Registration.step9_signature)
-async def process_step9(message: Message, state: FSMContext):
-    await state.update_data(signature=message.text)
-    await state.set_state(Registration.step10_doc_type)
-    await message.answer("**Шаг 10/12:** Укажите тип документа (например, Паспорт Канады):")
-
-@router.message(Registration.step10_doc_type)
-async def process_step10(message: Message, state: FSMContext):
-    await state.update_data(doc_type=message.text)
-    await state.set_state(Registration.step11_issue_reason)
-    await message.answer("**Шаг 11/12:** Укажите причину выдачи (Первичное получение / Замена):")
-
-@router.message(Registration.step11_issue_reason)
-async def process_step11(message: Message, state: FSMContext):
-    await state.update_data(issue_reason=message.text)
-    await state.set_state(Registration.step12_delivery_type)
-    await message.answer("**Шаг 12/12:** Укажите способ получения (Лично в МФЦ / Почта):")
-
-@router.message(Registration.step12_delivery_type)
-async def process_step12(message: Message, state: FSMContext, bot: Bot):
-    await state.update_data(delivery_type=message.text)
-    data = await state.get_data()
-    
-    user_id = message.from_user.id
-    username = message.from_user.username or "нет"
-
-    cursor.execute("""
-    INSERT OR REPLACE INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        user_id, username, data["fio"], data["gender"], data["birth_date"],
-        data["citizenship"], data["fraction"], data["bio"], data["social_status"],
-        data["photo"], data["signature"], data["doc_type"], data["issue_reason"],
-        data["delivery_type"], "pending"
-    ))
-    conn.commit()
-
-    admin_text = (
-        f"📋 **Новая анкета (12/12):**\n"
-        f"👤 От: @{username} (ID: {user_id})\n\n"
-        f"1. ФИО: {data['fio']}\n"
-        f"2. Пол: {data['gender']}\n"
-        f"3. Дата рождения: {data['birth_date']}\n"
-        f"4. Гражданство: {data['citizenship']}\n"
-        f"5. Фракция: {data['fraction']}\n"
-        f"6. Биография: {data['bio']}\n"
-        f"7. Соц. статус: {data['social_status']}\n"
-        f"8. Фото: {data['photo']}\n"
-        f"9. Подпись: {data['signature']}\n"
-        f"10. Тип документа: {data['doc_type']}\n"
-        f"11. Причина: {data['issue_reason']}\n"
-        f"12. Доставка: {data['delivery_type']}"
-    )
-
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="✅ Одобрить", callback_data=f"approve_{user_id}"),
-        InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_{user_id}")
-    ]])
-
-    await bot.send_message(ADMIN_CHAT_ID, admin_text, reply_markup=kb)
-    await message.answer("📋 Ваша анкета (12 шагов) отправлена на проверку администраторам!")
-    await state.clear()
+        await bot.send_message(ADMIN_CHAT_ID, admin_text, reply_markup=kb, parse_mode="Markdown")
+        await message.answer(
+            "🎉 **Registration Submitted Successfully!**\n\n"
+            "Your application has been sent to administrators for verification.",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        await message.answer(f"❌ Error processing Web App submission: {e}")
 
 # ==================== ДЕЙСТВИЯ АДМИНИСТРАТОРА ====================
 
@@ -325,11 +241,11 @@ async def approve_user(callback: CallbackQuery, bot: Bot):
     conn.commit()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🗑 Удалить карту", callback_data=f"admin_delete_{target_id}")
+        InlineKeyboardButton(text="🗑 Delete Record", callback_data=f"admin_delete_{target_id}")
     ]])
 
-    await bot.send_message(target_id, "🎉 Ваша анкета персонажа успешно одобрена администрацией!")
-    await callback.message.edit_text(callback.message.text + "\n\n✅ **ОДОБРЕНО**", reply_markup=kb)
+    await bot.send_message(target_id, "🎉 Your Canadian character registration has been approved!")
+    await callback.message.edit_text(callback.message.text + "\n\n✅ **APPROVED**", reply_markup=kb)
 
 @router.callback_query(F.data.startswith("reject_"))
 async def reject_user(callback: CallbackQuery, bot: Bot):
@@ -338,11 +254,11 @@ async def reject_user(callback: CallbackQuery, bot: Bot):
     conn.commit()
     
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🗑 Удалить из базы", callback_data=f"admin_delete_{target_id}")
+        InlineKeyboardButton(text="🗑 Delete Record", callback_data=f"admin_delete_{target_id}")
     ]])
 
-    await bot.send_message(target_id, "❌ Ваша анкета была отклонена администрацией.")
-    await callback.message.edit_text(callback.message.text + "\n\n❌ **ОТКЛОНЕНО**", reply_markup=kb)
+    await bot.send_message(target_id, "❌ Your character registration application was rejected.")
+    await callback.message.edit_text(callback.message.text + "\n\n❌ **REJECTED**", reply_markup=kb)
 
 @router.callback_query(F.data.startswith("admin_delete_"))
 async def admin_delete_user(callback: CallbackQuery, bot: Bot):
@@ -350,8 +266,8 @@ async def admin_delete_user(callback: CallbackQuery, bot: Bot):
     cursor.execute("DELETE FROM users WHERE user_id = ?", (target_id,))
     conn.commit()
 
-    await bot.send_message(target_id, "ℹ️ Ваш персонаж был удалён администратором. Вы можете создать нового через /start.")
-    await callback.message.edit_text(callback.message.text + "\n\n🗑 **ПЕРСОНАЖ УДАЛЕН АДМИНИСТРАТОРОМ**")
+    await bot.send_message(target_id, "ℹ️ Your profile was deleted by an admin. You can register again via /start.")
+    await callback.message.edit_text(callback.message.text + "\n\n🗑 **DELETED BY ADMIN**")
 
 # ==================== ЗАПУСК ====================
 async def main():
