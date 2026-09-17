@@ -80,14 +80,6 @@ def update_status(user_id: int, status: str):
     conn.commit()
     conn.close()
 
-def get_application(user_id: int):
-    conn = sqlite3.connect("database.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT status FROM passport_apps WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row
-
 # ---------------- FSM Состояния ----------------
 class PassportForm(StatesGroup):
     full_name = State()
@@ -106,16 +98,6 @@ class PassportForm(StatesGroup):
 # ---------------- Хэндлеры ----------------
 @router.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext):
-    row = get_application(message.from_user.id)
-    if row:
-        status = row[0]
-        if status == 'approved':
-            await message.answer("✅ Ваш канадский паспорт уже оформлен!")
-            return
-        elif status == 'pending':
-            await message.answer("⏳ Ваша заявка на паспорт находится на рассмотрении МФЦ.")
-            return
-
     await state.clear()
     await message.answer("🇨🇦 <b>Заявление на получение канадского паспорта (МФЦ)</b>\n\nШаг 1/12: Введите Ф.И.О вашего РП-персонажа:", parse_mode="HTML")
     await state.set_state(PassportForm.full_name)
@@ -234,7 +216,6 @@ async def process_signature(message: Message, state: FSMContext):
         ]
     ])
 
-    # Отправляем карточку с главным фото
     await bot.send_photo(
         chat_id=ADMIN_CHAT_ID,
         photo=user_data['photo_id'],
@@ -243,7 +224,6 @@ async def process_signature(message: Message, state: FSMContext):
         reply_markup=keyboard
     )
 
-    # Если подпись прислали картинкой — отправляем следом
     if sig_val.startswith("PHOTO:"):
         photo_sig_id = sig_val.replace("PHOTO:", "")
         await bot.send_photo(
@@ -294,4 +274,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
