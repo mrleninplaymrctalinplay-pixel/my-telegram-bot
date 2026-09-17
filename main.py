@@ -29,8 +29,14 @@ WEB_APP_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/"
 logging.basicConfig(level=logging.INFO)
 router = Router()
 
+# ==================== СОСТОЯНИЯ (FSM) ====================
 class RejectState(StatesGroup):
     waiting_for_reason = State()
+
+class ComplaintState(StatesGroup):
+    waiting_for_violation = State()   # Суть нарушения (например: НФ / оскорбление)
+    waiting_for_description = State() # Описание ситуации
+    waiting_for_photo = State()       # Скриншот доказательство
 
 # ==================== БАЗА ДАННЫХ ====================
 conn = sqlite3.connect("users.db", check_same_thread=False)
@@ -92,8 +98,8 @@ def generate_id_card(fio: str, dob: str, gender: str, roblox: str, signature: st
 TEXTS = {
     "ru": {
         "welcome_lang": "👋 Пожалуйста, выберите язык / Please select your language:",
-        "start": "🇨🇦 **Добро пожаловать в портал регистрации граждан Канады!**\n\nНажмите кнопку ниже, чтобы заполнить анкету через мини-приложение:",
-        "form_btn": "📝 Заполнить анкету",
+        "start": "🇨🇦 **Добро пожаловать в Plaza.World!**\n\nВыберите раздел в меню ниже:",
+        "form_btn": "🟢 Создание персонажа",
         "help_btn": "ℹ️ Помощь / Команды",
         "profile_btn": "👤 Профиль",
         "delete_btn": "🗑 Удалить персонажа",
@@ -103,15 +109,15 @@ TEXTS = {
         "no_char": "❌ У вас пока нет зарегистрированного персонажа.",
         "deleted": "🗑 Ваш профиль персонажа успешно удален!",
         "submitted": "🎉 **Анкета успешно отправлена!**\n\nВаша заявка передана администраторам на проверку.",
-        "help": "📖 **Список команд:**\n\n• `/start` — Главное меню\n• `/help` — Справка\n• `/profile` — Профиль персонажа\n• `/delete` — Удалить персонажа и пройти регистрацию заново\n• `/language` — Сменить язык",
+        "help": "📖 **Список команд:**\n\n• `/start` — Главное меню\n• `/profile` — Профиль персонажа\n• `/delete` — Удалить персонажа\n• `/language` — Сменить язык",
         "status_approved": "✅ Одобрено",
         "status_pending": "⏳ На проверке",
         "status_rejected": "❌ Отклонено"
     },
     "en": {
         "welcome_lang": "👋 Please select your language:",
-        "start": "🇨🇦 **Welcome to the Canadian Passport & Citizen Registration Portal!**\n\nClick the button below to fill out your character registration form via the Web Application:",
-        "form_btn": "📝 Fill Registration Form",
+        "start": "🇨🇦 **Welcome to Plaza.World!**\n\nSelect a section from the menu below:",
+        "form_btn": "🟢 Create Character",
         "help_btn": "ℹ️ Help / Commands",
         "profile_btn": "👤 View Profile",
         "delete_btn": "🗑 Delete Character",
@@ -121,7 +127,7 @@ TEXTS = {
         "no_char": "❌ You don't have a registered character yet.",
         "deleted": "🗑 Your character profile has been deleted!",
         "submitted": "🎉 **Registration Submitted Successfully!**\n\nYour application has been sent to administrators for verification.",
-        "help": "📖 **Command List:**\n\n• `/start` — Main Menu\n• `/help` — Help\n• `/profile` — View Profile\n• `/delete` — Delete character & re-register\n• `/language` — Change language",
+        "help": "📖 **Command List:**\n\n• `/start` — Main Menu\n• `/profile` — View Profile\n• `/delete` — Delete character\n• `/language` — Change language",
         "status_approved": "✅ Approved",
         "status_pending": "⏳ Under Review",
         "status_rejected": "❌ Rejected"
@@ -141,7 +147,41 @@ def get_lang_keyboard():
         ]
     ])
 
-# ==================== ХЕНДЛЕРЫ ЯЗЫКА И МЕНЮ ====================
+# ==================== ГЛАВНОЕ МЕНЮ ====================
+
+async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str):
+    t = TEXTS.get(lang, TEXTS["ru"])
+    cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
+    user = cursor.fetchone()
+    localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
+
+    if user and user[0] and user[1] in ["approved", "pending"]:
+        fio, status = user[0], user[1]
+        text = t["active_char"].format(fio=fio) if status == "approved" else t["pending_char"].format(fio=fio)
+    else:
+        text = t["start"]
+
+    # Меню в точности как на вашем скриншоте
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🟢 Создание персонажа", web_app=WebAppInfo(url=localized_webapp_url))],
+        [InlineKeyboardButton(text="💎 PlazaVK (соцсеть)", callback_data="plazavk_menu")],
+        [
+            InlineKeyboardButton(text="⚫️ Даркнет", callback_data="darknet_menu"),
+            InlineKeyboardButton(text="🔵 IRP список", callback_data="irp_list")
+        ],
+        [InlineKeyboardButton(text="🔴 Жалобы", callback_data="start_complaint")],
+        [
+            InlineKeyboardButton(text="👤 Профиль", callback_data="show_profile"),
+            InlineKeyboardButton(text="🌐 Язык", callback_data="change_language")
+        ]
+    ])
+
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
+    else:
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+
+# ==================== ХЕНДЛЕРЫ МЕНЮ И КОМАНД ====================
 
 @router.message(Command("language"))
 @router.callback_query(F.data == "change_language")
@@ -162,34 +202,6 @@ async def set_language(callback: CallbackQuery):
     await callback.answer("Language updated!")
     await show_main_menu(callback, user_id, lang_code)
 
-async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str):
-    t = TEXTS.get(lang, TEXTS["ru"])
-    cursor.execute("SELECT fio, status FROM users WHERE user_id = ?", (user_id,))
-    user = cursor.fetchone()
-    localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
-
-    if user and user[0] and user[1] in ["approved", "pending"]:
-        fio, status = user[0], user[1]
-        text = t["active_char"].format(fio=fio) if status == "approved" else t["pending_char"].format(fio=fio)
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=t["profile_btn"], callback_data="show_profile")],
-            [InlineKeyboardButton(text=t["help_btn"], callback_data="show_help")],
-            [InlineKeyboardButton(text=t["lang_btn"], callback_data="change_language")],
-            [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")]
-        ])
-    else:
-        text = t["start"]
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))],
-            [InlineKeyboardButton(text=t["help_btn"], callback_data="show_help")],
-            [InlineKeyboardButton(text=t["lang_btn"], callback_data="change_language")]
-        ])
-
-    if isinstance(event, Message):
-        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
-    else:
-        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
-
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     user_id = message.from_user.id
@@ -207,12 +219,27 @@ async def process_go_main_menu(callback: CallbackQuery):
     lang = get_user_lang(callback.from_user.id)
     await show_main_menu(callback, callback.from_user.id, lang)
 
+@router.callback_query(F.data == "plazavk_menu")
+async def plazavk_handler(callback: CallbackQuery):
+    await callback.message.answer("💎 **PlazaVK**\n\nРаздел находится в разработке.", parse_mode="Markdown")
+    await callback.answer()
+
+@router.callback_query(F.data == "darknet_menu")
+async def darknet_handler(callback: CallbackQuery):
+    await callback.message.answer("⚫️ **Даркнет**\n\nДобро пожаловать в теневую сеть.", parse_mode="Markdown")
+    await callback.answer()
+
+@router.callback_query(F.data == "irp_list")
+async def irp_handler(callback: CallbackQuery):
+    await callback.message.answer("🔵 **IRP список**\n\nСписок актуальных данных.", parse_mode="Markdown")
+    await callback.answer()
+
 @router.message(Command("help"))
 @router.callback_query(F.data == "show_help")
 async def cmd_help(event: Message | CallbackQuery):
     lang = get_user_lang(event.from_user.id)
     text = TEXTS[lang]["help"]
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Menu", callback_data="go_main_menu")]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]])
     if isinstance(event, Message):
         await event.answer(text, reply_markup=kb, parse_mode="Markdown")
     else:
@@ -231,7 +258,10 @@ async def show_profile_handler(event: Message | CallbackQuery):
 
     if not user or not user[1]:
         text = t["no_char"]
-        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))]])
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))],
+            [InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]
+        ])
     else:
         status_str = t.get(f"status_{user[6]}", user[6])
         text = (
@@ -247,7 +277,7 @@ async def show_profile_handler(event: Message | CallbackQuery):
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")],
-            [InlineKeyboardButton(text="◀️ Menu", callback_data="go_main_menu")]
+            [InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]
         ])
 
     if isinstance(event, Message):
@@ -267,13 +297,98 @@ async def cmd_delete_character(event: Message | CallbackQuery, state: FSMContext
     cursor.execute("UPDATE users SET roblox_nick=NULL, fio=NULL, birth_date=NULL, gender=NULL, skin_url=NULL, bio=NULL, signature=NULL, status='none' WHERE user_id = ?", (user_id,))
     conn.commit()
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))],
+        [InlineKeyboardButton(text="◀️ Меню", callback_data="go_main_menu")]
+    ])
     if isinstance(event, Message):
         await event.answer(t["deleted"], reply_markup=kb)
     else:
         await event.message.edit_text(t["deleted"], reply_markup=kb)
 
-# ==================== ПРИЕМ ДАННЫХ ИЗ WEB APP ====================
+# ==================== ПОДАЧА ЖАЛОБ С ФОТО ====================
+
+@router.callback_query(F.data == "start_complaint")
+async def start_complaint(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(ComplaintState.waiting_for_violation)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data="go_main_menu")]])
+    await callback.message.edit_text(
+        "🔴 **Подача жалобы**\n\nУкажите суть нарушения (например: *НФ / оскорбление в нрп чате*):",
+        reply_markup=kb,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+@router.message(ComplaintState.waiting_for_violation)
+async def process_violation(message: Message, state: FSMContext):
+    await state.update_data(violation=message.text)
+    await state.set_state(ComplaintState.waiting_for_description)
+    await message.answer("📝 Напишите подробное **описание** ситуации:", parse_mode="Markdown")
+
+@router.message(ComplaintState.waiting_for_description)
+async def process_description(message: Message, state: FSMContext):
+    await state.update_data(description=message.text)
+    await state.set_state(ComplaintState.waiting_for_photo)
+    await message.answer("🖼 Отправьте **скриншот (фото)** в качестве доказательства нарушения:", parse_mode="Markdown")
+
+@router.message(ComplaintState.waiting_for_photo, F.photo)
+async def process_complaint_photo(message: Message, state: FSMContext, bot: Bot):
+    data = await state.get_data()
+    violation = data.get("violation")
+    description = data.get("description")
+    
+    photo_file_id = message.photo[-1].file_id
+    user_id = message.from_user.id
+    username = message.from_user.username or "N/A"
+
+    admin_text = (
+        f"🔴 **Новая жалоба от игрока!**\n"
+        f"👤 От: @{username} (ID: `{user_id}`)\n\n"
+        f"⚡ **НАРУШЕНИЕ:**\n{violation}\n\n"
+        f"📖 **ОПИСАНИЕ:**\n{description}"
+    )
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✅ Принять", callback_data=f"accept_comp_{user_id}"),
+        InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_comp_{user_id}")
+    ]])
+
+    await bot.send_photo(
+        chat_id=ADMIN_CHAT_ID,
+        photo=photo_file_id,
+        caption=admin_text,
+        reply_markup=kb,
+        parse_mode="Markdown"
+    )
+
+    kb_menu = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ В меню", callback_data="go_main_menu")]])
+    await message.answer("✅ **Жалоба успешно отправлена администрации!** Ожидайте рассмотрения.", reply_markup=kb_menu, parse_mode="Markdown")
+    await state.clear()
+
+@router.message(ComplaintState.waiting_for_photo, ~F.photo)
+async def process_complaint_wrong_media(message: Message):
+    await message.answer("⚠️ Пожалуйста, отправьте именно **изображение (скриншот)**.")
+
+# Обработка принятия/отклонения жалобы администратором
+@router.callback_query(F.data.startswith("accept_comp_"))
+async def accept_complaint(callback: CallbackQuery, bot: Bot):
+    target_id = int(callback.data.split("_")[2])
+    try:
+        await bot.send_message(target_id, "✅ **Ваша жалоба была принята администрацией!**")
+    except Exception:
+        pass
+    await callback.message.edit_caption(caption=callback.message.caption + "\n\n✅ **ЖАЛОБА ПРИНЯТА**", reply_markup=None)
+
+@router.callback_query(F.data.startswith("reject_comp_"))
+async def reject_complaint(callback: CallbackQuery, bot: Bot):
+    target_id = int(callback.data.split("_")[2])
+    try:
+        await bot.send_message(target_id, "❌ **Ваша жалоба была отклонена администрацией.**")
+    except Exception:
+        pass
+    await callback.message.edit_caption(caption=callback.message.caption + "\n\n❌ **ЖАЛОБА ОТКЛОНЕНА**", reply_markup=None)
+
+# ==================== ПРИЕМ АНКЕТЫ ИЗ WEB APP ====================
 
 @router.message(lambda msg: bool(msg.web_app_data))
 async def handle_web_app_data(message: Message, bot: Bot):
@@ -331,8 +446,7 @@ async def handle_web_app_data(message: Message, bot: Bot):
     except Exception as e:
         await message.answer(f"❌ Ошибка обработки: {e}")
 
-# ==================== ОДОБРЕНИЕ И ОТКЛОНЕНИЕ ====================
-
+# Одобрение анкеты
 @router.callback_query(F.data.startswith("approve_"))
 async def approve_user(callback: CallbackQuery, bot: Bot):
     target_id = int(callback.data.split("_")[1])
