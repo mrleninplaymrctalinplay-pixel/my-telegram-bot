@@ -51,12 +51,13 @@ CREATE TABLE IF NOT EXISTS users (
 """)
 conn.commit()
 
-# Автоматическое добавление колонок
-try:
-    cursor.execute("ALTER TABLE users ADD COLUMN skin_url TEXT")
-    conn.commit()
-except sqlite3.OperationalError:
-    pass
+# Автоматическое обновление структуры БД
+for col_def in ["skin_url TEXT", "signature TEXT", "language TEXT DEFAULT 'en'"]:
+    try:
+        cursor.execute(f"ALTER TABLE users ADD COLUMN {col_def}")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
 
 # ==================== ГЕНЕРАЦИЯ ID-КАРТЫ ====================
 
@@ -204,7 +205,7 @@ async def set_language(callback: CallbackQuery):
     user_id = callback.from_user.id
     cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
     if cursor.fetchone():
-        cursor.execute("UPDATE users SET language = ? WHERE user_id = ?", (user_id,))
+        cursor.execute("UPDATE users SET language = ? WHERE user_id = ?", (lang_code, user_id))
     else:
         cursor.execute("INSERT INTO users (user_id, language, status) VALUES (?, ?, 'none')", (user_id, lang_code))
     conn.commit()
@@ -324,7 +325,7 @@ async def cmd_delete_character(event: Message | CallbackQuery, state: FSMContext
 
 # ==================== ПРИЕМ ДАННЫХ ИЗ WEB APP ====================
 
-@router.message(F.web_app_data)
+@router.message(lambda msg: bool(msg.web_app_data))
 async def handle_web_app_data(message: Message, bot: Bot):
     user_id = message.from_user.id
     lang = get_user_lang(user_id)
@@ -348,7 +349,7 @@ async def handle_web_app_data(message: Message, bot: Bot):
         """, (username, roblox_nick, full_name, dob, gender, skin_url, bio, signature, user_id))
         conn.commit()
 
-        # АНКЕТА ДЛЯ АДМИНОВ ВСЕГДА НА РУССКОМ ЯЗЫКЕ
+        # Карточка для админов всегда на русском языке
         admin_text = (
             f"📋 **Новая анкета на проверку:**\n"
             f"👤 От пользователя: @{username} (ID: `{user_id}`)\n"
