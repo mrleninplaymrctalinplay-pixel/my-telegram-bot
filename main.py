@@ -89,7 +89,7 @@ def generate_id_card(fio: str, dob: str, gender: str, roblox: str, signature: st
 TEXTS = {
     "ru": {
         "welcome_lang": "👋 Пожалуйста, выберите язык / Please select your language:",
-        "start": "🇨🇦 **Добро пожаловать в Plaza.World!**\n\nВыберите нужный раздел в меню ниже:",
+        "start": "🇨🇦 **Добро пожаловать в GreeLand!**\n\nВыберите нужный раздел в меню ниже:",
         "active_char": "✅ У вас есть активный персонаж: **{fio}**.",
         "pending_char": "⏳ Ваша анкета для **{fio}** находится на проверке.",
         "no_char": "❌ У вас пока нет зарегистрированного персонажа.",
@@ -102,7 +102,7 @@ TEXTS = {
     },
     "en": {
         "welcome_lang": "👋 Please select your language:",
-        "start": "🇨🇦 **Welcome to Plaza.World!**\n\nSelect a section from the menu below:",
+        "start": "🇨🇦 **Welcome to GreeLand!**\n\nSelect a section from the menu below:",
         "active_char": "✅ You have an active character: **{fio}**.",
         "pending_char": "⏳ Your registration for **{fio}** is under review.",
         "no_char": "❌ You don't have a registered character yet.",
