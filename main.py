@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS users (
     bio TEXT,
     signature TEXT,
     status TEXT DEFAULT 'none',
-    language TEXT DEFAULT 'en'
+    language TEXT DEFAULT 'ru'
 )
 """)
 conn.commit()
@@ -103,14 +103,14 @@ TEXTS = {
         "no_char": "❌ У вас пока нет зарегистрированного персонажа.",
         "deleted": "🗑 Ваш профиль персонажа успешно удален!",
         "submitted": "🎉 **Анкета успешно отправлена!**\n\nВаша заявка передана администраторам на проверку.",
-        "help": "📖 **Список команд:**\n\n• `/start` — Главное меню\n• `/help` — Справка\n• `/profile` — Профиль персонажа\n• `/delete` — Удалить персонажа и пройти регистрацию заново",
+        "help": "📖 **Список команд:**\n\n• `/start` — Главное меню\n• `/help` — Справка\n• `/profile` — Профиль персонажа\n• `/delete` — Удалить персонажа и пройти регистрацию заново\n• `/language` — Сменить язык",
         "status_approved": "✅ Одобрено",
         "status_pending": "⏳ На проверке",
         "status_rejected": "❌ Отклонено"
     },
     "en": {
         "welcome_lang": "👋 Please select your language:",
-        "start": "🇨🇦 **Welcome to the Canadian Passport & Citizen Registration Portal!**",
+        "start": "🇨🇦 **Welcome to the Canadian Passport & Citizen Registration Portal!**\n\nClick the button below to fill out your character registration form via the Web Application:",
         "form_btn": "📝 Fill Registration Form",
         "help_btn": "ℹ️ Help / Commands",
         "profile_btn": "👤 View Profile",
@@ -121,7 +121,7 @@ TEXTS = {
         "no_char": "❌ You don't have a registered character yet.",
         "deleted": "🗑 Your character profile has been deleted!",
         "submitted": "🎉 **Registration Submitted Successfully!**\n\nYour application has been sent to administrators for verification.",
-        "help": "📖 **Command List:**\n\n• `/start` — Main Menu\n• `/help` — Help\n• `/profile` — View Profile\n• `/delete` — Delete character & re-register",
+        "help": "📖 **Command List:**\n\n• `/start` — Main Menu\n• `/help` — Help\n• `/profile` — View Profile\n• `/delete` — Delete character & re-register\n• `/language` — Change language",
         "status_approved": "✅ Approved",
         "status_pending": "⏳ Under Review",
         "status_rejected": "❌ Rejected"
@@ -141,19 +141,17 @@ def get_lang_keyboard():
         ]
     ])
 
-# ==================== ХЕНДЛЕРЫ ====================
+# ==================== ХЕНДЛЕРЫ ЯЗЫКА И МЕНЮ ====================
 
-@router.message(CommandStart())
-async def cmd_start(message: Message):
-    user_id = message.from_user.id
-    cursor.execute("SELECT language FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    if not row:
-        cursor.execute("INSERT OR IGNORE INTO users (user_id, status, language) VALUES (?, 'none', 'ru')", (user_id,))
-        conn.commit()
-        await message.answer(TEXTS["ru"]["welcome_lang"], reply_markup=get_lang_keyboard())
+@router.message(Command("language"))
+@router.callback_query(F.data == "change_language")
+async def select_language(event: Message | CallbackQuery):
+    text = "🌐 **Select Language / Выберите язык:**"
+    kb = get_lang_keyboard()
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
     else:
-        await show_main_menu(message, user_id, row[0] or "ru")
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
 
 @router.callback_query(F.data.startswith("set_lang_"))
 async def set_language(callback: CallbackQuery):
@@ -175,14 +173,46 @@ async def show_main_menu(event: Message | CallbackQuery, user_id: int, lang: str
         text = t["active_char"].format(fio=fio) if status == "approved" else t["pending_char"].format(fio=fio)
         kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text=t["profile_btn"], callback_data="show_profile")],
+            [InlineKeyboardButton(text=t["help_btn"], callback_data="show_help")],
+            [InlineKeyboardButton(text=t["lang_btn"], callback_data="change_language")],
             [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")]
         ])
     else:
         text = t["start"]
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))]
+            [InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))],
+            [InlineKeyboardButton(text=t["help_btn"], callback_data="show_help")],
+            [InlineKeyboardButton(text=t["lang_btn"], callback_data="change_language")]
         ])
 
+    if isinstance(event, Message):
+        await event.answer(text, reply_markup=kb, parse_mode="Markdown")
+    else:
+        await event.message.edit_text(text, reply_markup=kb, parse_mode="Markdown")
+
+@router.message(CommandStart())
+async def cmd_start(message: Message):
+    user_id = message.from_user.id
+    cursor.execute("SELECT language FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    if not row:
+        cursor.execute("INSERT OR IGNORE INTO users (user_id, status, language) VALUES (?, 'none', 'ru')", (user_id,))
+        conn.commit()
+        await message.answer(TEXTS["ru"]["welcome_lang"], reply_markup=get_lang_keyboard())
+    else:
+        await show_main_menu(message, user_id, row[0] or "ru")
+
+@router.callback_query(F.data == "go_main_menu")
+async def process_go_main_menu(callback: CallbackQuery):
+    lang = get_user_lang(callback.from_user.id)
+    await show_main_menu(callback, callback.from_user.id, lang)
+
+@router.message(Command("help"))
+@router.callback_query(F.data == "show_help")
+async def cmd_help(event: Message | CallbackQuery):
+    lang = get_user_lang(event.from_user.id)
+    text = TEXTS[lang]["help"]
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="◀️ Menu", callback_data="go_main_menu")]])
     if isinstance(event, Message):
         await event.answer(text, reply_markup=kb, parse_mode="Markdown")
     else:
@@ -194,13 +224,14 @@ async def show_profile_handler(event: Message | CallbackQuery):
     user_id = event.from_user.id
     lang = get_user_lang(user_id)
     t = TEXTS.get(lang, TEXTS["ru"])
+    localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
 
     cursor.execute("SELECT roblox_nick, fio, birth_date, gender, bio, signature, status, skin_url FROM users WHERE user_id = ?", (user_id,))
     user = cursor.fetchone()
 
     if not user or not user[1]:
         text = t["no_char"]
-        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=f"{WEB_APP_URL}?lang={lang}"))]])
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))]])
     else:
         status_str = t.get(f"status_{user[6]}", user[6])
         text = (
@@ -215,7 +246,8 @@ async def show_profile_handler(event: Message | CallbackQuery):
             f"✍️ **Подпись:** `{user[5]}`"
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")]
+            [InlineKeyboardButton(text=t["delete_btn"], callback_data="user_delete_self")],
+            [InlineKeyboardButton(text="◀️ Menu", callback_data="go_main_menu")]
         ])
 
     if isinstance(event, Message):
@@ -229,12 +261,13 @@ async def cmd_delete_character(event: Message | CallbackQuery, state: FSMContext
     user_id = event.from_user.id
     lang = get_user_lang(user_id)
     t = TEXTS.get(lang, TEXTS["ru"])
+    localized_webapp_url = f"{WEB_APP_URL}?lang={lang}"
 
     await state.clear()
     cursor.execute("UPDATE users SET roblox_nick=NULL, fio=NULL, birth_date=NULL, gender=NULL, skin_url=NULL, bio=NULL, signature=NULL, status='none' WHERE user_id = ?", (user_id,))
     conn.commit()
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=f"{WEB_APP_URL}?lang={lang}"))]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text=t["form_btn"], web_app=WebAppInfo(url=localized_webapp_url))]])
     if isinstance(event, Message):
         await event.answer(t["deleted"], reply_markup=kb)
     else:
@@ -318,7 +351,7 @@ async def approve_user(callback: CallbackQuery, bot: Bot):
             await bot.send_photo(
                 chat_id=target_id,
                 photo=photo_file,
-                caption="🎉 **Ваша анкета одобрена!**\nВот ваш канадский ID-документ."
+                caption="🎉 **Ваша анкета одобрена!**\nВот ваш канадский ID-документ:"
             )
         except Exception as e:
             logging.error(f"Ошибка отправки фото пользователю {target_id}: {e}")
