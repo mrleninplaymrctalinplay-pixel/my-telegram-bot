@@ -7,7 +7,7 @@ from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 # Токен вашего бота от BotFather
 BOT_TOKEN = "8996747968:AAHdVCmUIASZNhaUj-qp1m-JsRrqIq8udII"
 
-# Ваша официальная ссылка на хостинге Render
+# Ваша рабочая ссылка на хостинге Render
 WEB_APP_URL = "https://my-telegram-bot-cwph.onrender.com"
 
 bot = Bot(token=BOT_TOKEN)
@@ -35,9 +35,9 @@ async def cmd_start(message: types.Message):
     
     text = (
         "🌴 **Добро пожаловать в официальный хаб Brookhaven 24/7!**\n\n"
-        "• **GreeLand Gram** — делитесь фото, лайкайте и общайтесь.\n"
-        "• **Суд и Жалобы** — подавайте репорты на нарушителей РП.\n\n"
-        "Выбирайте нужный раздел ниже:"
+        "• **GreeLand Gram** — делитесь фото, лайкайте и общайтесь в РП-соцсети.\n"
+        "• **Суд и Жалобы** — подавайте и рассматривайте репорты на нарушителей.\n\n"
+        "Выберите нужное мини-приложение ниже:"
     )
     await message.answer(text, reply_markup=keyboard, parse_mode="Markdown")
 
