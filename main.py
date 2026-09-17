@@ -11,7 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
 
 # Токен бота
-TOKEN = os.getenv("TOKEN", "YOUR_BOT_TOKEN_HERE")
+TOKEN = os.getenv("TOKEN", "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI")
 
 SOCIAL_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/social.html"
 COMPLAINTS_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/complaints.html"
