@@ -83,8 +83,8 @@
         tg.expand();
         let currentUsername = "";
         
-        // Впишите сюда свои ники администраторов:
-        const ADMINS = ["@admin", "@owner", "@creator"];
+        // Список администраторов (ваш ID 5835421141 добавлен сюда официально)
+        const ADMINS = [5835421141];
 
         window.onload = function() {
             let saved = localStorage.getItem('greeland_username');
@@ -105,8 +105,12 @@
         }
 
         function isAdmin() {
-            let clean = currentUsername.toLowerCase();
-            return ADMINS.includes(clean.startsWith('@') ? clean : '@' + clean);
+            // Проверка по реальному Telegram ID текущего пользователя
+            let userTgId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
+            if (userTgId && ADMINS.includes(Number(userTgId))) {
+                return true;
+            }
+            return false;
         }
 
         function checkAdmin() {
