@@ -19,7 +19,7 @@ from aiogram.types import (
 BOT_TOKEN = "8996747968:AAHdVCmUIASZNhaUj-qp1m-JsRrqIq8udII"
 
 # ID администратора или ID группы (если группа, то с минусом, например: -1001234567890)
-ADMIN_CHAT_ID = 644112527
+ADMIN_CHAT_ID = -1003913257980
 
 # Ваша ссылка на GitHub Pages из раздела Settings -> Pages
 WEB_APP_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/"
