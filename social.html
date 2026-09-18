@@ -11,7 +11,6 @@
             --surface-color: #151a21;
             --surface-hover: #1e2530;
             --accent-pink: #e1306c;
-            --accent-purple: #833ab4;
             --accent-gradient: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
             --text-main: #ffffff;
             --text-muted: #8b98a5;
@@ -30,7 +29,7 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding-bottom: 70px; /* Отступ под нижнюю навигацию */
+            padding-bottom: 70px;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -43,7 +42,6 @@
             position: relative;
         }
 
-        /* Шапка приложения */
         .top-navbar {
             background: var(--surface-color);
             border-bottom: 1px solid var(--border-color);
@@ -63,14 +61,7 @@
             -webkit-text-fill-color: transparent;
             letter-spacing: 0.5px;
         }
-        .top-icons {
-            display: flex;
-            gap: 15px;
-            font-size: 20px;
-            cursor: pointer;
-        }
 
-        /* Вкладки контента */
         .tab-content {
             display: none;
             flex: 1;
@@ -86,7 +77,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Профиль */
         .profile-card {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
@@ -150,7 +140,6 @@
             color: var(--text-muted);
         }
 
-        /* Карточка поста */
         .post-card {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
@@ -227,7 +216,6 @@
             color: var(--danger-color);
         }
 
-        /* Форма создания поста */
         .create-form-wrapper {
             background: var(--surface-color);
             border: 1px solid var(--border-color);
@@ -280,7 +268,6 @@
             opacity: 0.9;
         }
 
-        /* Нижнее меню навигации */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -319,52 +306,21 @@
         .nav-item:active {
             transform: scale(0.9);
         }
-
-        /* Список поиска / пользователей */
-        .user-search-card {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-        .follow-btn {
-            background: var(--surface-hover);
-            color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .follow-btn.following {
-            background: var(--accent-pink);
-            border-color: var(--accent-pink);
-        }
     </style>
 </head>
 <body>
     <div class="app-container">
-        
-        <!-- Шапка -->
         <header class="top-navbar">
             <div class="logo-text">GreeLand Social</div>
             <div class="top-icons">✨</div>
         </header>
 
-        <!-- Вкладка 1: Лента новостей -->
         <section id="tab-feed" class="tab-content active">
             <div id="feed-container">
                 <p style="text-align: center; color: var(--text-muted); padding: 40px 0;">Загрузка ленты штата...</p>
             </div>
         </section>
 
-        <!-- Вкладка 2: Создание поста -->
         <section id="tab-create" class="tab-content">
             <div class="create-form-wrapper">
                 <div class="form-title">📸 Новая публикация</div>
@@ -374,39 +330,11 @@
             </div>
         </section>
 
-        <!-- Вкладка 3: Поиск / Пользователи -->
-        <section id="tab-explore" class="tab-content">
-            <input type="text" class="input-field" placeholder="🔍 Найти жителя штата..." style="margin-bottom: 15px;">
-            <div id="explore-users-list">
-                <div class="user-search-card">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="post-mini-avatar">👤</div>
-                        <div>
-                            <div style="font-weight: bold; font-size: 14px;">Alexander Green</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">@id7748291</div>
-                        </div>
-                    </div>
-                    <button class="follow-btn" onclick="toggleFollow(this)">Подписаться</button>
-                </div>
-                <div class="user-search-card">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="post-mini-avatar">👤</div>
-                        <div>
-                            <div style="font-weight: bold; font-size: 14px;">Jessica Smith</div>
-                            <div style="font-size: 11px; color: var(--text-muted);">@id5592014</div>
-                        </div>
-                    </div>
-                    <button class="follow-btn" onclick="toggleFollow(this)">Подписаться</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Вкладка 4: Профиль -->
         <section id="tab-profile" class="tab-content">
             <div class="profile-card">
                 <div class="profile-top">
                     <div class="profile-avatar-wrapper">
-                        <div class="profile-avatar-inner" id="profileAvatarIcon">👤</div>
+                        <div class="profile-avatar-inner">👤</div>
                     </div>
                     <div class="profile-meta">
                         <div class="profile-name" id="profileDisplayName">Игрок GreeLand</div>
@@ -420,21 +348,17 @@
                         <div class="label">постов</div>
                     </div>
                     <div class="stat-box">
-                        <div class="num" id="statFollowers">24</div>
+                        <div class="num">24</div>
                         <div class="label">подписчики</div>
                     </div>
                     <div class="stat-box">
-                        <div class="num" id="statFollowing">18</div>
+                        <div class="num">18</div>
                         <div class="label">подписки</div>
                     </div>
                 </div>
             </div>
-            <div style="background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 16px; padding: 15px; text-align: center; color: var(--text-muted); font-size: 13px;">
-                Ваши публикации будут отображаться здесь после создания.
-            </div>
         </section>
 
-        <!-- Нижняя панель навигации -->
         <nav class="bottom-nav">
             <button class="nav-item active" onclick="switchTab('feed', this)">
                 🏠<span>Лента</span>
@@ -442,14 +366,10 @@
             <button class="nav-item" onclick="switchTab('create', this)">
                 ➕<span>Создать</span>
             </button>
-            <button class="nav-item" onclick="switchTab('explore', this)">
-                🔍<span>Поиск</span>
-            </button>
             <button class="nav-item" onclick="switchTab('profile', this)">
                 👤<span>Профиль</span>
             </button>
         </nav>
-
     </div>
 
     <script>
@@ -465,7 +385,6 @@
 
         const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com';
 
-        // Переключение вкладок
         function switchTab(tabName, element) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -478,18 +397,6 @@
             }
         }
 
-        // Переключение подписки в поиске
-        function toggleFollow(btn) {
-            if (btn.innerText === 'Подписаться') {
-                btn.innerText = 'Подписки';
-                btn.classList.add('following');
-            } else {
-                btn.innerText = 'Подписаться';
-                btn.classList.remove('following');
-            }
-        }
-
-        // Загрузка ленты с сервера
         function loadFeedData() {
             fetch(`${RENDER_API_URL}/api/social/feed`)
                 .then(res => res.json())
@@ -527,12 +434,11 @@
                         container.appendChild(postEl);
                     });
                 })
-                .catch(err => {
-                    document.getElementById('feed-container').innerHTML = '<p style="text-align: center; color: var(--danger-color); padding: 40px 0;">Сервер соцсети просыпается после паузы...</p>';
+                .catch(() => {
+                    document.getElementById('feed-container').innerHTML = '<p style="text-align: center; color: var(--danger-color); padding: 40px 0;">Сервер соцсети просыпается...</p>';
                 });
         }
 
-        // Публикация поста
         function publishPost() {
             const author = document.getElementById('postAuthorInput').value.trim();
             const text = document.getElementById('postTextInput').value.trim();
@@ -551,16 +457,11 @@
             .then(data => {
                 if (data.status === 'success') {
                     document.getElementById('postTextInput').value = '';
-                    // Автоматически переходим в ленту
                     switchTab('feed', document.querySelector('.nav-item'));
-                } else {
-                    alert('Не удалось опубликовать пост.');
                 }
-            })
-            .catch(() => alert('Ошибка соединения с сервером.'));
+            });
         }
 
-        // Лайк поста
         function likePost(postId, btn) {
             fetch(`${RENDER_API_URL}/api/social/like`, {
                 method: 'POST',
@@ -576,7 +477,6 @@
             });
         }
 
-        // Первичная загрузка
         loadFeedData();
     </script>
 </body>
