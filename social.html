@@ -21,6 +21,8 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* Убираем синий прямоугольник / подсветку при нажатии на мобильных устройствах */
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -28,6 +30,11 @@
             color: var(--text-primary);
             padding-bottom: 70px;
             -webkit-font-smoothing: antialiased;
+        }
+
+        /* Убираем обводки фокуса на всех кнопках и элементах */
+        button, input, textarea, select {
+            outline: none;
         }
 
         /* Top Header */
@@ -166,7 +173,6 @@
             padding: 6px 10px;
             color: var(--text-primary);
             font-size: 13px;
-            outline: none;
         }
 
         .comment-form button {
@@ -420,7 +426,7 @@
             </div>
             
             <div class="chat-box" id="chatBox" style="display: none;">
-                <div id="chatTitle" style="font-weight: 600; font-size: 13px; margin-bottom: 8px; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Чет с пользователем</div>
+                <div id="chatTitle" style="font-weight: 600; font-size: 13px; margin-bottom: 8px; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Чат с пользователем</div>
                 <div class="chat-messages" id="chatMessages">
                     <div class="msg incoming">Привет! Как продвигается обустройство в GreeLand?</div>
                 </div>
