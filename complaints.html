@@ -60,12 +60,7 @@
         .forum-header h2 {
             font-size: 18px;
             font-weight: 700;
-            letter-spacing: 0.5px;
             color: var(--text-primary);
-        }
-
-        .forum-header span {
-            font-size: 20px;
         }
 
         .forum-body {
@@ -106,7 +101,7 @@
         }
 
         .form-group textarea {
-            height: 120px;
+            height: 110px;
             resize: none;
         }
 
@@ -150,13 +145,13 @@
             <form id="reportForm" onsubmit="sendToTelegram(event)">
                 
                 <div class="form-group">
-                    <label>Ваш игровой ник (или ID)</label>
-                    <input type="text" id="senderName" placeholder="Например: Alex_Green [#12]" required>
+                    <label>Ваш игровой ник (ФИО / ID)</label>
+                    <input type="text" id="senderName" placeholder="Например: Иван Иванов [#12]" required>
                 </div>
 
                 <div class="form-group">
                     <label>Тип обращения</label>
-                    <select id="reportType">
+                    <select id="reportType" onchange="updateTemplate()">
                         <option value="Жалоба на игрока">Жалоба на игрока</option>
                         <option value="Жалоба на администрацию">Жалоба на администрацию</option>
                         <option value="Предложение по улучшению">Предложение по улучшению</option>
@@ -166,39 +161,68 @@
 
                 <div class="form-group">
                     <label>Нарушитель (если применимо)</label>
-                    <input type="text" id="targetUser" placeholder="Имя или ID нарушителя (необязательно)">
+                    <input type="text" id="targetUser" placeholder="Ник или ID нарушителя">
                 </div>
 
                 <div class="form-group">
-                    <label>Суть проблемы / Доказательства (ссылки)</label>
-                    <textarea id="reportText" placeholder="Опишите подробно ситуацию, приложите ссылки на видео/скриншоты..." required></textarea>
+                    <label>Ссылка на скриншот / видео (Imgur, ImgBB, YouTube)</label>
+                    <input type="url" id="mediaLink" placeholder="https://imgur.com/...">
+                </div>
+
+                <div class="form-group">
+                    <label>Суть проблемы</label>
+                    <textarea id="reportText" placeholder="Опишите подробно ситуацию..." required></textarea>
                 </div>
 
                 <button type="submit" class="btn-submit">Опубликовать обращение</button>
                 
                 <div class="rules-hint">
-                    Создавая тему, вы подтверждаете достоверность указанной информации. Заведомо ложные данные могут привести к блокировке.
+                    Заведомо ложные обвинения или спам могут привести к блокировке аккаунта в системе GreeLand.
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        // Шаблоны под каждую категорию
+        const templates = {
+            "Жалоба на игрока": "1. Описание ситуации:\n2. Время нарушения:\n3. Доказательства ниже.",
+            "Жалоба на администрацию": "1. Суть претензии:\n2. Дата выдачи наказания / ситуации:\n3. В чем не согласен:",
+            "Предложение по улучшению": "1. Суть идеи:\n2. Как это улучшит игровой процесс в GreeLand:\n3. Примеры реализации:",
+            "Баг / Ошибка": "1. Подробное описание бага:\n2. Как воспроизвести ошибку:\n3. Скриншоты/Видео проблемы:"
+        };
+
+        // Автоматически меняем текст в поле при смене категории
+        function updateTemplate() {
+            const type = document.getElementById('reportType').value;
+            const textArea = document.getElementById('reportText');
+            if(templates[type]) {
+                textArea.value = templates[type];
+            }
+        }
+
+        // Устанавливаем шаблон при первом запуске
+        window.onload = function() {
+            updateTemplate();
+        };
+
         function sendToTelegram(event) {
             event.preventDefault();
 
-            const BOT_TOKEN = "8996747986:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sl"; 
+            const BOT_TOKEN = "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI"; 
             const CHAT_ID = "-1003913257980";
 
             const sender = document.getElementById('senderName').value;
             const type = document.getElementById('reportType').value;
             const target = document.getElementById('targetUser').value || "Не указан";
+            const media = document.getElementById('mediaLink').value || "Отсутствуют";
             const text = document.getElementById('reportText').value;
 
             const message = `🚨 <b>НОВОЕ ОБРАЩЕНИЕ С ФОРУМА</b>\n\n` +
                             `📌 <b>Тип:</b> ${type}\n` +
                             `👤 <b>Отправитель:</b> ${sender}\n` +
-                            `🎯 <b>Нарушитель:</b> ${target}\n\n` +
+                            `🎯 <b>Нарушитель:</b> ${target}\n` +
+                            `🔗 <b>Доказательства:</b> ${media}\n\n` +
                             `💬 <b>Описание:</b>\n${text}`;
 
             const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
@@ -214,17 +238,19 @@
                     parse_mode: 'HTML'
                 })
             })
-            .then(response => {
-                if (response.ok) {
-                    alert("Ваше обращение успешно отправлено на рассмотрение администрации!");
+            .then(async response => {
+                const data = await response.json();
+                if (response.ok && data.ok) {
+                    alert("Ваше обращение успешно отправлено в группу администрации!");
                     document.getElementById('reportForm').reset();
+                    updateTemplate();
                 } else {
-                    alert("Ошибка при отправке. Убедитесь, что бот добавлен в группу `-1003913257980`.");
+                    alert("Ошибка Telegram API: " + (data.description || "Проверьте токен и права бота."));
                 }
             })
             .catch(error => {
-                console.error('Ошибка:', error);
-                alert("Не удалось отправить сообщение. Проверьте интернет-соединение.");
+                console.error('Ошибка сети:', error);
+                alert("Ошибка отправки! Возможно, браузер блокирует прямой запрос к Telegram (CORS).");
             });
         }
     </script>
