@@ -3,89 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Жалобы и предложения - GreeLand</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>GreeLand - Форум жалоб и предложений</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
-            --accent-color: #f43f5e;
-            --border-color: #334155;
+            --bg-color: #0f1115;
+            --surface-color: #161920;
+            --card-color: #1e222d;
+            --text-primary: #ffffff;
+            --text-secondary: #8b949e;
+            --accent-red: #e53935;
+            --accent-red-hover: #c62828;
+            --border-color: #2d333b;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 16px;
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
             padding: 20px;
-            border: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
-        h2 { text-align: center; color: var(--accent-color); }
-        label { display: block; margin-bottom: 8px; font-weight: bold; }
-        textarea, select {
+
+        button, input, textarea, select {
+            outline: none;
+        }
+
+        .forum-container {
             width: 100%;
+            max-width: 550px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+
+        .forum-header {
+            background: var(--card-color);
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--accent-red);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .forum-header h2 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+        }
+
+        .forum-header span {
+            font-size: 20px;
+        }
+
+        .forum-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
             background: var(--bg-color);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px;
-            color: var(--text-color);
-            font-size: 16px;
-            margin-bottom: 20px;
-            box-sizing: border-box;
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
         }
-        button {
+
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus {
+            border-color: var(--accent-red);
+        }
+
+        .form-group textarea {
+            height: 120px;
+            resize: none;
+        }
+
+        .btn-submit {
             width: 100%;
-            background: var(--accent-color);
+            padding: 14px;
+            background: var(--accent-red);
             color: white;
             border: none;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 14px;
             cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.2s;
+        }
+
+        .btn-submit:hover {
+            background: var(--accent-red-hover);
+        }
+
+        .rules-hint {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 12px;
+            text-align: center;
+            line-height: 1.4;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>🚨 Жалобы и предложения</h2>
-        <form id="complaint-form">
-            <label>Тип обращения:</label>
-            <select id="type">
-                <option value="Жалоба на игрока">Жалоба на игрока</option>
-                <option value="Баг / Ошибка">Баг или ошибка</option>
-                <option value="Предложение">Идея / Предложение</option>
-            </select>
 
-            <label>Опишите суть проблемы или идеи:</label>
-            <textarea id="text" rows="5" required placeholder="Введите подробности..."></textarea>
+    <div class="forum-container">
+        <div class="forum-header">
+            <span>🚨</span>
+            <h2>Подача жалобы / предложения</h2>
+        </div>
+        
+        <div class="forum-body">
+            <form id="reportForm" onsubmit="sendToTelegram(event)">
+                
+                <div class="form-group">
+                    <label>Ваш игровой ник (или ID)</label>
+                    <input type="text" id="senderName" placeholder="Например: Alex_Green [#12]" required>
+                </div>
 
-            <button type="submit">Отправить обращение</button>
-        </form>
+                <div class="form-group">
+                    <label>Тип обращения</label>
+                    <select id="reportType">
+                        <option value="Жалоба на игрока">Жалоба на игрока</option>
+                        <option value="Жалоба на администрацию">Жалоба на администрацию</option>
+                        <option value="Предложение по улучшению">Предложение по улучшению</option>
+                        <option value="Баг / Ошибка">Баг / Ошибка</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Нарушитель (если применимо)</label>
+                    <input type="text" id="targetUser" placeholder="Имя или ID нарушителя (необязательно)">
+                </div>
+
+                <div class="form-group">
+                    <label>Суть проблемы / Доказательства (ссылки)</label>
+                    <textarea id="reportText" placeholder="Опишите подробно ситуацию, приложите ссылки на видео/скриншоты..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">Опубликовать обращение</button>
+                
+                <div class="rules-hint">
+                    Создавая тему, вы подтверждаете достоверность указанной информации. Заведомо ложные данные могут привести к блокировке.
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        function sendToTelegram(event) {
+            event.preventDefault();
 
-        document.getElementById('complaint-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const data = {
-                type: "complaint",
-                category: document.getElementById('type').value,
-                text: document.getElementById('text').value
-            };
-            tg.sendData(JSON.stringify(data));
-            tg.close();
-        });
+            const BOT_TOKEN = "8996747986:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sl"; 
+            const CHAT_ID = "-1003913257980";
+
+            const sender = document.getElementById('senderName').value;
+            const type = document.getElementById('reportType').value;
+            const target = document.getElementById('targetUser').value || "Не указан";
+            const text = document.getElementById('reportText').value;
+
+            const message = `🚨 <b>НОВОЕ ОБРАЩЕНИЕ С ФОРУМА</b>\n\n` +
+                            `📌 <b>Тип:</b> ${type}\n` +
+                            `👤 <b>Отправитель:</b> ${sender}\n` +
+                            `🎯 <b>Нарушитель:</b> ${target}\n\n` +
+                            `💬 <b>Описание:</b>\n${text}`;
+
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Ваше обращение успешно отправлено на рассмотрение администрации!");
+                    document.getElementById('reportForm').reset();
+                } else {
+                    alert("Ошибка при отправке. Убедитесь, что бот добавлен в группу `-1003913257980`.");
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert("Не удалось отправить сообщение. Проверьте интернет-соединение.");
+            });
+        }
     </script>
 </body>
 </html>
