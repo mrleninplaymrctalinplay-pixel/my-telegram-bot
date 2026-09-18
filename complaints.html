@@ -2,160 +2,90 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GreeLand RP • Суд и Жалобы</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Жалобы и предложения - GreeLand</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: #0d0d0d; color: #fff; padding: 16px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 12px; }
-        .logo { font-size: 18px; font-weight: 800; color: #ff4d4d; }
-        .btn-main { background: #fff; color: #000; border: none; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 12px; cursor: pointer; }
-        #auth-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0d0d0d; z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .auth-box { width: 100%; max-width: 320px; background: #161616; padding: 24px; border-radius: 16px; border: 1px solid #333; text-align: center; }
-        .auth-box input { width: 100%; background: #222; border: 1px solid #333; border-radius: 10px; padding: 10px; color: #fff; font-size: 14px; margin-bottom: 12px; outline: none; text-align: center; }
-        .reports-container { display: flex; flex-direction: column; gap: 12px; }
-        .report-card { background: #161616; border: 1px solid #2a2a2a; border-radius: 14px; padding: 16px; }
-        .report-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; color: #aaa; }
-        .report-target { color: #ff4d4d; font-weight: bold; background: rgba(255, 77, 77, 0.1); padding: 2px 8px; border-radius: 6px; }
-        .report-desc { font-size: 13px; color: #e1e1e1; margin-bottom: 12px; }
-        .report-footer { display: flex; justify-content: space-between; align-items: center; font-size: 11px; border-top: 1px solid #222; padding-top: 10px; }
-        .status-badge { color: #f09433; font-weight: 500; }
-        .admin-actions { display: flex; gap: 6px; }
-        .btn-del { background: #ff4d4d; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .btn-close-rep { background: #333; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); padding: 20px; z-index: 3000; overflow-y: auto; }
-        .modal-content { background: #161616; border-radius: 16px; padding: 20px; margin-top: 60px; border: 1px solid #333; }
-        .form-group { margin-bottom: 12px; text-align: left; }
-        .form-group label { display: block; font-size: 11px; color: #888; margin-bottom: 5px; }
-        .form-group input, .form-group textarea { width: 100%; background: #222; border: 1px solid #333; border-radius: 10px; padding: 10px; color: #fff; font-size: 13px; outline: none; }
-        .btn-submit { width: 100%; background: #fff; color: #000; border: none; padding: 12px; border-radius: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
-        .admin-banner { background: rgba(59, 165, 93, 0.1); border: 1px solid rgba(59, 165, 93, 0.3); color: #3ba55d; padding: 10px; border-radius: 10px; font-size: 12px; margin-bottom: 15px; text-align: center; font-weight: 600; display: none; }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #f43f5e;
+            --border-color: #334155;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+        h2 { text-align: center; color: var(--accent-color); }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        textarea, select {
+            width: 100%;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            color: var(--text-color);
+            font-size: 16px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h2>🚨 Жалобы и предложения</h2>
+        <form id="complaint-form">
+            <label>Тип обращения:</label>
+            <select id="type">
+                <option value="Жалоба на игрока">Жалоба на игрока</option>
+                <option value="Баг / Ошибка">Баг или ошибка</option>
+                <option value="Предложение">Идея / Предложение</option>
+            </select>
 
-    <div id="auth-screen">
-        <div class="auth-box">
-            <h2>Регистрация в Суде</h2>
-            <p style="font-size:11px; color:#888; margin-bottom:12px;">Введите ваш РП-юзернейм</p>
-            <input type="text" id="auth-input" placeholder="@username">
-            <button class="btn-submit" onclick="loginUser()">Войти</button>
-        </div>
-    </div>
+            <label>Опишите суть проблемы или идеи:</label>
+            <textarea id="text" rows="5" required placeholder="Введите подробности..."></textarea>
 
-    <div class="header">
-        <div class="logo">🚨 Brookhaven Суд</div>
-        <button class="btn-main" onclick="openModal('reportModal')">+ Жалоба</button>
-    </div>
-
-    <div id="adminBanner" class="admin-banner">🛡 Режим Администратора активен</div>
-
-    <div class="reports-container" id="reportsContainer">
-        <div class="report-card" id="rep-sample">
-            <div class="report-top">
-                <span>От: <b>@player_99</b></span>
-                <span class="report-target">Нарушитель: @trolling_noob</span>
-            </div>
-            <div class="report-desc">ДМит на спавне без причины.</div>
-            <div class="report-footer">
-                <span class="status-badge" id="status-rep-sample">⏳ На рассмотрении</span>
-                <div class="admin-actions" id="actions-rep-sample" style="display: none;">
-                    <button class="btn-close-rep" onclick="resolveReport('rep-sample')">Решено</button>
-                    <button class="btn-del" onclick="deleteReport('rep-sample')">Удалить</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="reportModal" class="modal">
-        <div class="modal-content">
-            <h3>Подать жалобу</h3>
-            <div class="form-group"><label>Нарушитель:</label><input type="text" id="targetInput" placeholder="@bad_player"></div>
-            <div class="form-group"><label>Описание:</label><textarea id="descInput" style="width:100%; background:#222; border:1px solid #333; border-radius:10px; padding:10px; color:#fff; height:80px;"></textarea></div>
-            <button class="btn-submit" onclick="submitReport()">Отправить</button>
-            <button class="btn-submit" style="background:transparent; color:#888;" onclick="closeModal('reportModal')">Отмена</button>
-        </div>
+            <button type="submit">Отправить обращение</button>
+        </form>
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
+        const tg = window.Telegram.WebApp;
         tg.expand();
-        let currentUsername = "";
-        
-        // Список администраторов (ваш ID 5835421141 добавлен сюда официально)
-        const ADMINS = [5835421141];
 
-        window.onload = function() {
-            let saved = localStorage.getItem('greeland_username');
-            if (saved) {
-                currentUsername = saved;
-                document.getElementById('auth-screen').style.display = 'none';
-                checkAdmin();
-            }
-        };
-
-        function loginUser() {
-            let val = document.getElementById('auth-input').value.trim();
-            if (val.length < 5) { alert("Минимум 5 символов!"); return; }
-            currentUsername = val.startsWith('@') ? val : '@' + val;
-            localStorage.setItem('greeland_username', currentUsername);
-            document.getElementById('auth-screen').style.display = 'none';
-            checkAdmin();
-        }
-
-        function isAdmin() {
-            // Проверка по реальному Telegram ID текущего пользователя
-            let userTgId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
-            if (userTgId && ADMINS.includes(Number(userTgId))) {
-                return true;
-            }
-            return false;
-        }
-
-        function checkAdmin() {
-            if (isAdmin()) {
-                document.getElementById('adminBanner').style.display = 'block';
-                document.querySelectorAll('.admin-actions').forEach(el => el.style.display = 'flex');
-            }
-        }
-
-        function openModal(id) { document.getElementById(id).style.display = 'block'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-        function submitReport() {
-            let target = document.getElementById('targetInput').value.trim();
-            let desc = document.getElementById('descInput').value.trim();
-            if(!target || !desc) { alert("Заполните все поля!"); return; }
-            
-            let id = 'rep-' + Date.now();
-            let disp = isAdmin() ? 'flex' : 'none';
-            let html = `
-                <div class="report-card" id="${id}">
-                    <div class="report-top"><span>От: <b>${currentUsername}</b></span><span class="report-target">Нарушитель: ${target}</span></div>
-                    <div class="report-desc">${desc}</div>
-                    <div class="report-footer">
-                        <span class="status-badge" id="status-${id}">⏳ На рассмотрении</span>
-                        <div class="admin-actions" id="actions-${id}" style="display: ${disp};">
-                            <button class="btn-close-rep" onclick="resolveReport('${id}')">Решено</button>
-                            <button class="btn-del" onclick="deleteReport('${id}')">Удалить</button>
-                        </div>
-                    </div>
-                </div>`;
-            document.getElementById('reportsContainer').insertAdjacentHTML('afterbegin', html);
-            closeModal('reportModal');
-            document.getElementById('targetInput').value = '';
-            document.getElementById('descInput').value = '';
-        }
-
-        function deleteReport(id) {
-            if(confirm("Удалить жалобу?")) document.getElementById(id).remove();
-        }
-
-        function resolveReport(id) {
-            let badge = document.getElementById(`status-${id}`);
-            if(badge) { badge.innerText = "✅ Закрыто"; badge.style.color = "#3ba55d"; }
-        }
+        document.getElementById('complaint-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const data = {
+                type: "complaint",
+                category: document.getElementById('type').value,
+                text: document.getElementById('text').value
+            };
+            tg.sendData(JSON.stringify(data));
+            tg.close();
+        });
     </script>
 </body>
 </html>
