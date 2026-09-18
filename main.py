@@ -9,7 +9,7 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, W
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 
-# Самый актуальный и рабочий токен бота
+# Самый точный и рабочий токен бота
 TOKEN = "8996747986:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sl"
 
 # Ссылки на ваши мини-приложения на GitHub Pages
@@ -47,7 +47,7 @@ async def command_start_handler(message: Message) -> None:
 async def command_help_handler(message: Message) -> None:
     await message.answer(
         "📖 **Справка по боту GreeLand:**\n\n"
-        "/start — Открыть главное меню и мини-приложения\n"
+        "/start — Главное меню и мини-приложения\n"
         "/profile — Посмотреть сохраненную анкету персонажа\n"
         "/help — Показать эту справку",
         parse_mode="Markdown"
@@ -57,7 +57,7 @@ async def command_help_handler(message: Message) -> None:
 async def command_profile_handler(message: Message) -> None:
     user_id = message.from_user.id
     if user_id not in user_profiles:
-        await message.answer("⚠️ У вас еще нет сохраненного персонажа! Откройте /start и заполните анкету в мини-приложении регистрации.")
+        await message.answer("⚠️ У вас еще нет сохраненного персонажа! Откройте /start и заполните анкету.")
         return
     
     p = user_profiles[user_id]
