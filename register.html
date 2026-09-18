@@ -17,9 +17,9 @@
         body { background-color: var(--bg-color); color: var(--text-primary); padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         .reg-card { width: 100%; max-width: 450px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
         h2 { font-size: 20px; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
-        .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; }
-        input, select, textarea { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 14px; outline: none; }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px; }
+        input, select, textarea { width: 100%; padding: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 14px; outline: none; }
         input:focus, select:focus { border-color: var(--accent-color); }
         .btn-submit { width: 100%; padding: 14px; background: var(--accent-color); color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
         .btn-submit:hover { opacity: 0.9; }
@@ -45,8 +45,20 @@
                 </select>
             </div>
             <div class="form-group">
+                <label>Гражданство</label>
+                <input type="text" id="regCitizen" placeholder="Например: США / Местный" required>
+            </div>
+            <div class="form-group">
+                <label>Номер медкарта / Справка</label>
+                <input type="text" id="regMed" placeholder="Номер или ссылка на медкарту" required>
+            </div>
+            <div class="form-group">
+                <label>Роспись (Ваша подпись)</label>
+                <input type="text" id="regSign" placeholder="Ваша подпись (текстом)" required>
+            </div>
+            <div class="form-group">
                 <label>История персонажа (Био)</label>
-                <textarea id="regBio" placeholder="Краткая история жизни..." rows="3" required></textarea>
+                <textarea id="regBio" placeholder="Краткая история жизни..." rows="2" required></textarea>
             </div>
             <button type="submit" class="btn-submit">Отправить на рассмотрение</button>
         </form>
@@ -62,12 +74,18 @@
             const fio = document.getElementById('regFio').value;
             const age = document.getElementById('regAge').value;
             const gender = document.getElementById('regGender').value;
+            const citizen = document.getElementById('regCitizen').value;
+            const med = document.getElementById('regMed').value;
+            const sign = document.getElementById('regSign').value;
             const bio = document.getElementById('regBio').value;
 
             const message = `📋 <b>НОВАЯ АНКЕТА РП ПЕРСОНАЖА</b>\n\n` +
                             `👤 <b>ФИО:</b> ${fio}\n` +
                             `🎂 <b>Возраст:</b> ${age}\n` +
                             `⚧ <b>Пол:</b> ${gender}\n` +
+                            `🌍 <b>Гражданство:</b> ${citizen}\n` +
+                            `🏥 <b>Медкарта:</b> ${med}\n` +
+                            `✍️ <b>Роспись:</b> ${sign}\n` +
                             `📖 <b>Биография:</b>\n${bio}`;
 
             const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
@@ -78,13 +96,21 @@
                 body: JSON.stringify({
                     chat_id: CHAT_ID,
                     text: message,
-                    parse_mode: 'HTML'
+                    parse_mode: 'HTML',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                { text: "✅ Одобрить", callback_data: "app_approve" },
+                                { text: "❌ Отклонить", callback_data: "app_reject" }
+                            ]
+                        ]
+                    }
                 })
             })
             .then(async res => {
                 const data = await res.json();
                 if(res.ok && data.ok) {
-                    alert("Анкета успешно отправлена администрации в группу!");
+                    alert("Анкета успешно отправлена администрации!");
                     window.location.href = "social.html";
                 } else {
                     alert("Ошибка отправки: " + (data.description || "проверьте бота."));
