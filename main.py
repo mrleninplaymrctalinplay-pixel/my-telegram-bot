@@ -6,7 +6,7 @@ import urllib.request
 import urllib.parse
 from flask import Flask, request, jsonify
 from telegram import Update, InlineKeyboardButton
-from telegram.ext import Application, CallbackQueryHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,6 +18,58 @@ app_bot = Flask(__name__)
 
 PENDING_REJECT_PASSPORT = {}
 PENDING_REJECT_COMPLAINT = {}
+
+# --- КОМАНДЫ ПОЛЬЗОВАТЕЛЕЙ ---
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_name = update.effective_user.first_name
+    await update.message.reply_text(
+        f"Привет, {user_name}! 👋\n\n"
+        f"Добро пожаловать в официальный бот проекта <b>GreeLand RP</b>.\n"
+        f"Используйте команды:\n"
+        f"• /menu — Главное меню\n"
+        f"• /profile — Ваш профиль и данные персонажа\n"
+        f"• /help — Помощь по проекту\n"
+        f"• /delete — Удалить текущего РП персонажа",
+        parse_mode="HTML"
+    )
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "💡 <b>Справка по проекту GreeLand RP:</b>\n\n"
+        "1. Для регистрации персонажа и получения паспорта используйте форму регистрации.\n"
+        "2. Для подачи жалоб или предложений используйте форумный раздел (Жалобы).\n"
+        "3. По всем вопросам обращайтесь к администрации.",
+        parse_mode="HTML"
+    )
+
+async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📱 <b>Главное меню GreeLand RP:</b>\n\n"
+        "Выберите интересующий вас раздел или воспользуйтесь веб-приложением.",
+        parse_mode="HTML"
+    )
+
+async def profile_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    await update.message.reply_text(
+        f"👤 <b>Ваш профиль:</b>\n\n"
+        f"• Имя: {user.first_name}\n"
+        f"• Telegram ID: <code>{user.id}</code>\n"
+        f"• Статус: Игрок GreeLand RP",
+        parse_mode="HTML"
+    )
+
+async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "⚠️ <b>Удаление персонажа:</b>\n\n"
+        "Вы действительно хотите удалить своего РП персонажа и сбросить Static ID? "
+        "Для подтверждения обратитесь к администрации или используйте внутриигровой функционал.",
+        parse_mode="HTML"
+    )
+
+
+# --- API ДЛЯ МИНИ-ПРИЛОЖЕНИЙ ---
 
 @app_bot.route('/api/submit', methods=['POST'])
 def handle_miniapp_submit():
@@ -71,6 +123,8 @@ def handle_miniapp_submit():
 
     return jsonify({"status": "error", "message": "Telegram API error"}), 500
 
+
+# --- ОБРАБОТЧИКИ КНОПОК И АДМИНКИ ---
 
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -155,6 +209,15 @@ async def admin_text_message_handler(update: Update, context: ContextTypes.DEFAU
 
 def main():
     telegram_app = Application.builder().token(TELEGRAM_TOKEN).build()
+    
+    # Регистрация команд
+    telegram_app.add_handler(CommandHandler("start", start_command))
+    telegram_app.add_handler(CommandHandler("help", help_command))
+    telegram_app.add_handler(CommandHandler("menu", menu_command))
+    telegram_app.add_handler(CommandHandler("profile", profile_command))
+    telegram_app.add_handler(CommandHandler("delete", delete_command))
+    
+    # Регистрация обработчиков кнопок и текста
     telegram_app.add_handler(CallbackQueryHandler(button_callback_handler))
     telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_text_message_handler))
 
@@ -167,7 +230,7 @@ def main():
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
 
-    logger.info("Бот и сервер запущены успешно!")
+    logger.info("Бот и сервер запущены успешно вместе с командами!")
     telegram_app.run_polling()
 
 
