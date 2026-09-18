@@ -1,20 +1,21 @@
 import os
 import random
 import logging
-import requests
+import json
+import urllib.request
+import urllib.parse
 from flask import Flask, request, jsonify
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton
 from telegram.ext import Application, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "ВАШ_ТОКЕН_БОТА")
-ADMIN_GROUP_ID = int(os.environ.get("ADMIN_GROUP_ID", "-100XXXXXXXXXX"))
+ADMIN_GROUP_ID = -1003913257980  # Ваш ID группы прописан напрямую
 
 app_bot = Flask(__name__)
 
-# Хранилища для ожидания причины отклонения: {admin_id: target_user_id}
 PENDING_REJECT_PASSPORT = {}
 PENDING_REJECT_COMPLAINT = {}
 
@@ -56,11 +57,19 @@ def handle_miniapp_submit():
         "reply_markup": {"inline_keyboard": keyboard}
     }
     
-    response = requests.post(url, json=payload)
-    if response.status_code == 200:
-        return jsonify({"status": "success"})
-    else:
-        return jsonify({"status": "error", "message": "Telegram API error"}), 500
+    try:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
+        )
+        with urllib.request.urlopen(req) as response:
+            if response.status == 200:
+                return jsonify({"status": "success"})
+    except Exception as e:
+        logger.error(f"Telegram API error: {e}")
+
+    return jsonify({"status": "error", "message": "Telegram API error"}), 500
 
 
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -69,7 +78,6 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
     data = query.data
     admin_id = query.from_user.id
 
-    # 1. Паспорта
     if data.startswith("pass_app_"):
         target_user_id = int(data.split("_")[2])
         static_id = random.randint(1000, 9999)
@@ -94,7 +102,6 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         PENDING_REJECT_PASSPORT[admin_id] = target_user_id
         await query.message.reply_text("✍️ Введите причину отклонения паспорта следующим сообщением:")
 
-    # 2. Жалобы и форум
     elif data.startswith("comp_app_"):
         target_user_id = int(data.split("_")[2])
         try:
