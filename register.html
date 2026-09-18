@@ -3,124 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GreeLand - Создание персонажа</title>
+    <title>Регистрация персонажа - GreeLand RP</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg-color: #0b0e14;
-            --surface-color: #161b22;
-            --border-color: #30363d;
-            --text-primary: #f0f6fc;
-            --text-secondary: #8b949e;
-            --accent-color: #ff5722;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            padding: 20px;
+            margin: 0;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: var(--bg-color); color: var(--text-primary); padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .reg-card { width: 100%; max-width: 450px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-        h2 { font-size: 20px; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
-        .form-group { margin-bottom: 14px; }
-        label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 5px; }
-        input, select, textarea { width: 100%; padding: 10px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 14px; outline: none; }
-        input:focus, select:focus { border-color: var(--accent-color); }
-        .btn-submit { width: 100%; padding: 14px; background: var(--accent-color); color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
-        .btn-submit:hover { opacity: 0.9; }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        h2 { text-align: center; color: #4CAF50; }
+        label { display: block; margin-top: 10px; font-size: 14px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        textarea { resize: vertical; height: 100px; }
+        button {
+            width: 100%;
+            background-color: #d35400;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover { background-color: #e67e22; }
     </style>
 </head>
 <body>
-    <div class="reg-card">
-        <h2>🌲 Создание персонажа</h2>
-        <form id="regForm" onsubmit="submitRegistration(event)">
-            <div class="form-group">
-                <label>ФИО / Имя персонажа</label>
-                <input type="text" id="regFio" placeholder="Например: Александр Грин" required>
-            </div>
-            <div class="form-group">
-                <label>Возраст</label>
-                <input type="number" id="regAge" placeholder="Например: 25" min="16" max="99" required>
-            </div>
-            <div class="form-group">
-                <label>Пол</label>
-                <select id="regGender">
-                    <option value="Мужской">Мужской</option>
-                    <option value="Женский">Женский</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Гражданство</label>
-                <input type="text" id="regCitizen" placeholder="Например: США / Местный" required>
-            </div>
-            <div class="form-group">
-                <label>Номер медкарта / Справка</label>
-                <input type="text" id="regMed" placeholder="Номер или ссылка на медкарту" required>
-            </div>
-            <div class="form-group">
-                <label>Роспись (Ваша подпись)</label>
-                <input type="text" id="regSign" placeholder="Ваша подпись (текстом)" required>
-            </div>
-            <div class="form-group">
-                <label>История персонажа (Био)</label>
-                <textarea id="regBio" placeholder="Краткая история жизни..." rows="2" required></textarea>
-            </div>
-            <button type="submit" class="btn-submit">Отправить на рассмотрение</button>
+    <div class="container">
+        <h2>🌲 Регистрация персонажа</h2>
+        <form id="regForm">
+            <label>ФИО / Имя персонажа:</label>
+            <input type="text" id="fio" required placeholder="Например: Александр Грин">
+
+            <label>Возраст:</label>
+            <input type="number" id="age" required placeholder="25">
+
+            <label>Пол:</label>
+            <select id="gender">
+                <option value="Мужской">Мужской</option>
+                <option value="Женский">Женский</option>
+            </select>
+
+            <label>Роспись (ваша подпись):</label>
+            <input type="text" id="sign" required placeholder="J.Doe">
+
+            <label>История персонажа (БИО) — минимум 70 слов:</label>
+            <textarea id="bio" required placeholder="Расскажите историю вашего персонажа подробно..."></textarea>
+            <span id="wordCount" style="font-size: 12px; color: #888;">Слов: 0 / 70</span>
+
+            <button type="submit" id="submitBtn">ОТПРАВИТЬ НА РАССМОТРЕНИЕ</button>
         </form>
     </div>
 
     <script>
-        function submitRegistration(event) {
-            event.preventDefault();
+        let tg = window.Telegram.WebApp;
+        tg.expand();
 
-            const BOT_TOKEN = "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI";
-            const CHAT_ID = "-1003913257980";
+        const bioInput = document.getElementById('bio');
+        const wordCountSpan = document.getElementById('wordCount');
 
-            const fio = document.getElementById('regFio').value;
-            const age = document.getElementById('regAge').value;
-            const gender = document.getElementById('regGender').value;
-            const citizen = document.getElementById('regCitizen').value;
-            const med = document.getElementById('regMed').value;
-            const sign = document.getElementById('regSign').value;
-            const bio = document.getElementById('regBio').value;
+        bioInput.addEventListener('input', () => {
+            const text = bioInput.value.trim();
+            const words = text === "" ? 0 : text.split(/\s+/).length;
+            wordCountSpan.innerText = `Слов: ${words} / 70`;
+            if (words < 70) {
+                wordCountSpan.style.color = '#e74c3c';
+            } else {
+                wordCountSpan.style.color = '#2ecc71';
+            }
+        });
 
-            const message = `📋 <b>НОВАЯ АНКЕТА РП ПЕРСОНАЖА</b>\n\n` +
-                            `👤 <b>ФИО:</b> ${fio}\n` +
-                            `🎂 <b>Возраст:</b> ${age}\n` +
-                            `⚧ <b>Пол:</b> ${gender}\n` +
-                            `🌍 <b>Гражданство:</b> ${citizen}\n` +
-                            `🏥 <b>Медкарта:</b> ${med}\n` +
-                            `✍️ <b>Роспись:</b> ${sign}\n` +
-                            `📖 <b>Биография:</b>\n${bio}`;
+        document.getElementById('regForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+            const bioText = bioInput.value.trim();
+            const wordsCount = bioText === "" ? 0 : bioText.split(/\s+/).length;
 
-            fetch(url, {
+            if (wordsCount < 70) {
+                alert(`Ошибка: Биография слишком короткая! Нужно минимум 70 слов (сейчас ${wordsCount}).`);
+                return;
+            }
+
+            const formData = {
+                type: "registration",
+                user_id: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0,
+                content: `<b>ФИО:</b> ${document.getElementById('fio').value}\n` +
+                         `<b>Возраст:</b> ${document.getElementById('age').value}\n` +
+                         `<b>Пол:</b> ${document.getElementById('gender').value}\n` +
+                         `<b>Подпись:</b> ${document.getElementById('sign').value}\n` +
+                         `<b>Биография:</b> ${bioText}`
+            };
+
+            // Ссылка на ваш рабочий сервер Render
+            const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com/api/submit';
+
+            fetch(RENDER_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                { text: "✅ Одобрить", callback_data: "app_approve" },
-                                { text: "❌ Отклонить", callback_data: "app_reject" }
-                            ]
-                        ]
-                    }
-                })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
             })
-            .then(async res => {
-                const data = await res.json();
-                if(res.ok && data.ok) {
-                    alert("Анкета успешно отправлена администрации!");
-                    window.location.href = "social.html";
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Анкета успешно отправлена администраторам!');
+                    tg.close();
                 } else {
-                    alert("Ошибка отправки: " + (data.description || "проверьте бота."));
+                    alert('Ошибка отправки: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
-            .catch(err => {
-                console.error(err);
-                alert("Ошибка сети при отправке анкеты.");
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка соединения с сервером.');
             });
-        }
+        });
     </script>
 </body>
 </html>
