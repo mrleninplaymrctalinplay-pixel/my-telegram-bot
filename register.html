@@ -6,162 +6,94 @@
     <title>GreeLand - Создание персонажа</title>
     <style>
         :root {
-            --bg-color: #000000;
-            --surface-color: #121212;
-            --card-color: #1a1a1a;
-            --text-primary: #ffffff;
-            --text-secondary: #8e8e8e;
-            --accent-color: #ff3b30;
-            --accent-gradient: linear-gradient(135deg, #ff7a00, #ff007a, #7a00ff);
-            --border-color: #262626;
+            --bg-color: #0b0e14;
+            --surface-color: #161b22;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-color: #ff5722;
         }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .char-container {
-            width: 100%;
-            max-width: 420px;
-            background: var(--card-color);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 30px 20px;
-        }
-
-        .logo-title {
-            font-size: 26px;
-            font-weight: 700;
-            background: var(--accent-gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
-            text-align: center;
-            letter-spacing: -0.5px;
-        }
-
-        .subtitle {
-            font-size: 13px;
-            color: var(--text-secondary);
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-        }
-
-        .form-group input, 
-        .form-group select, 
-        .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 14px;
-            outline: none;
-        }
-
-        .form-group textarea {
-            height: 80px;
-            resize: none;
-        }
-
-        .form-group input:focus, 
-        .form-group select:focus, 
-        .form-group textarea:focus {
-            border-color: #0095f6;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 12px;
-            background: #0095f6;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        .btn-submit:hover {
-            background: #1877f2;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-color); color: var(--text-primary); padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .reg-card { width: 100%; max-width: 450px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        h2 { font-size: 20px; margin-bottom: 20px; text-align: center; color: var(--text-primary); }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px; }
+        input, select, textarea { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 14px; outline: none; }
+        input:focus, select:focus { border-color: var(--accent-color); }
+        .btn-submit { width: 100%; padding: 14px; background: var(--accent-color); color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
+        .btn-submit:hover { opacity: 0.9; }
     </style>
 </head>
 <body>
-
-    <div class="char-container">
-        <div class="logo-title">Регистрация персонажа</div>
-        <div class="subtitle">Заполните данные для мира GreeLand</div>
-        
-        <form onsubmit="saveCharacter(event)">
+    <div class="reg-card">
+        <h2>🌲 Создание персонажа</h2>
+        <form id="regForm" onsubmit="submitRegistration(event)">
             <div class="form-group">
-                <label>1. ФИО персонажа</label>
-                <input type="text" id="charFio" placeholder="Например: Смирнов Алексей Дмитриевич" required>
+                <label>ФИО / Имя персонажа</label>
+                <input type="text" id="regFio" placeholder="Например: Александр Грин" required>
             </div>
-
             <div class="form-group">
-                <label>2. Игровой ник / Юзернейм</label>
-                <input type="text" id="charNick" placeholder="Например: alex_storm" required>
+                <label>Возраст</label>
+                <input type="number" id="regAge" placeholder="Например: 25" min="16" max="99" required>
             </div>
-
             <div class="form-group">
-                <label>3. Роль / Класс</label>
-                <select id="charRole">
-                    <option value="Искатель">Искатель приключений</option>
-                    <option value="Торговец">Торговец</option>
-                    <option value="Инженер">Инженер</option>
-                    <option value="Исследователь">Исследователь</option>
+                <label>Пол</label>
+                <select id="regGender">
+                    <option value="Мужской">Мужской</option>
+                    <option value="Женский">Женский</option>
                 </select>
             </div>
-
             <div class="form-group">
-                <label>4. Краткая предыстория</label>
-                <textarea id="charBio" placeholder="Например: Родился в северном районе, увлекается технологиями..."></textarea>
+                <label>История персонажа (Био)</label>
+                <textarea id="regBio" placeholder="Краткая история жизни..." rows="3" required></textarea>
             </div>
-
-            <button type="submit" class="btn-submit">Создать персонажа</button>
+            <button type="submit" class="btn-submit">Отправить на рассмотрение</button>
         </form>
     </div>
 
     <script>
-        function saveCharacter(event) {
+        function submitRegistration(event) {
             event.preventDefault();
-            
-            const fio = document.getElementById('charFio').value;
-            const nick = document.getElementById('charNick').value;
-            
-            alert(`Персонаж "${fio}" (@${nick}) успешно зарегистрирован!`);
-            
-            // Если нужно сразу перенаправлять в ленту (social.html), раскомментируйте строчку ниже:
-            // window.location.href = "social.html";
+
+            const BOT_TOKEN = "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI";
+            const CHAT_ID = "-1003913257980";
+
+            const fio = document.getElementById('regFio').value;
+            const age = document.getElementById('regAge').value;
+            const gender = document.getElementById('regGender').value;
+            const bio = document.getElementById('regBio').value;
+
+            const message = `📋 <b>НОВАЯ АНКЕТА РП ПЕРСОНАЖА</b>\n\n` +
+                            `👤 <b>ФИО:</b> ${fio}\n` +
+                            `🎂 <b>Возраст:</b> ${age}\n` +
+                            `⚧ <b>Пол:</b> ${gender}\n` +
+                            `📖 <b>Биография:</b>\n${bio}`;
+
+            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            })
+            .then(async res => {
+                const data = await res.json();
+                if(res.ok && data.ok) {
+                    alert("Анкета успешно отправлена администрации в группу!");
+                    window.location.href = "social.html";
+                } else {
+                    alert("Ошибка отправки: " + (data.description || "проверьте бота."));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Ошибка сети при отправке анкеты.");
+            });
         }
     </script>
 </body>
