@@ -3,90 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Обращение / Жалоба - GreeLand RP</title>
+    <title>Форум - GreeLand RP</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #0d0f12;
+            --card-bg: #161920;
+            --accent-color: #f39c12;
+            --accent-hover: #e67e22;
+            --text-main: #ffffff;
+            --text-muted: #8b949e;
+            --border-color: #21262d;
+        }
         body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 15px;
             margin: 0;
         }
         .container {
             max-width: 500px;
             margin: 0 auto;
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 10px;
         }
-        h2 { text-align: center; color: #e74c3c; }
-        label { display: block; margin-top: 10px; font-size: 14px; }
+        .forum-header {
+            background: var(--card-bg);
+            border-left: 4px solid var(--accent-color);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .forum-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--accent-color);
+        }
+        .forum-header p {
+            margin: 5px 0 0 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .form-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
         input, select, textarea {
             width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            background: #2d2d2d;
-            border: 1px solid #444;
-            color: white;
-            border-radius: 5px;
+            padding: 12px;
+            margin-top: 6px;
+            background: #0d0f12;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 6px;
             box-sizing: border-box;
+            font-size: 14px;
+            transition: border-color 0.2s;
         }
-        textarea { resize: vertical; height: 120px; }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
+        textarea {
+            resize: vertical;
+            height: 130px;
+        }
         button {
             width: 100%;
-            background-color: #c0392b;
-            color: white;
-            padding: 12px;
+            background-color: var(--accent-color);
+            color: #0d0f12;
+            padding: 14px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
             cursor: pointer;
-            margin-top: 20px;
+            margin-top: 25px;
+            transition: background-color 0.2s, transform 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        button:hover { background-color: #e74c3c; }
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>⚠️ Центр жалоб и предложений</h2>
-        <form id="complaintForm">
-            <label>Тип обращения:</label>
-            <select id="complaintType">
-                <option value="Жалоба на игрока">👤 Жалоба на игрока</option>
-                <option value="Жалоба на администрацию">🛡️ Жалоба на администрацию</option>
-                <option value="Предложение по улучшению">💡 Предложение по улучшению</option>
-            </select>
+        <div class="forum-header">
+            <h2>GREE LAND // FORUM</h2>
+            <p>Подача жалоб, заявлений и предложений по развитию проекта</p>
+        </div>
 
-            <label>На кого или на что (ник / тема):</label>
-            <input type="text" id="target" required placeholder="Например: Nick_Name или суть идеи">
+        <div class="form-card">
+            <form id="forumForm">
+                <label>Раздел форума:</label>
+                <select id="sectionType">
+                    <option value="Жалоба на игрока">📂 Жалобы на игроков</option>
+                    <option value="Жалоба на администрацию">🛡️ Жалобы на администрацию</option>
+                    <option value="Предложение по улучшению">💡 Предложения по улучшению</option>
+                </select>
 
-            <label>Подробное описание:</label>
-            <textarea id="complaintText" required placeholder="Опишите подробно суть жалобы или вашего предложения..."></textarea>
+                <label>Ваш Static ID / NickName:</label>
+                <input type="text" id="author" required placeholder="Например: John Smith [12345]">
 
-            <button type="submit">ОТПРАВИТЬ ОБРАЩЕНИЕ</button>
-        </form>
+                <label>Нарушитель / Тема обращения:</label>
+                <input type="text" id="target" required placeholder="Укажите ID нарушителя или название темы">
+
+                <label>Суть обращения / Доказательства:</label>
+                <textarea id="description" required placeholder="Подробно опишите ситуацию, приложите тайм-коды или ссылки на видео/скриншоты..."></textarea>
+
+                <button type="submit">Создать тему</button>
+            </form>
+        </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        document.getElementById('complaintForm').addEventListener('submit', function(e) {
+        document.getElementById('forumForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
-            const cType = document.getElementById('complaintType').value;
-            const targetVal = document.getElementById('target').value;
-            const textVal = document.getElementById('complaintText').value;
+            const section = document.getElementById('sectionType').value;
+            const author = document.getElementById('author').value.trim();
+            const target = document.getElementById('target').value.trim();
+            const description = document.getElementById('description').value.trim();
 
             const formData = {
                 type: "complaint",
                 user_id: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0,
-                content: `<b>Категория:</b> ${cType}\n` +
-                         `<b>Объект / Тема:</b> ${targetVal}\n` +
-                         `<b>Описание:</b> ${textVal}`
+                content: `<b>[ФОРУМ] Раздел:</b> ${section}\n` +
+                         `<b>Автор:</b> ${author}\n` +
+                         `<b>Тема / Нарушитель:</b> ${target}\n` +
+                         `<b>Описание:</b> ${description}`
             };
 
+            // Ссылка на ваш бэкенд на Render
             const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com/api/submit';
 
             fetch(RENDER_API_URL, {
@@ -99,15 +167,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert('Обращение успешно отправлено администраторам!');
+                    alert('Тема на форуме успешно создана и передана администрации!');
                     tg.close();
                 } else {
-                    alert('Ошибка отправки: ' + (data.message || 'Неизвестная ошибка'));
+                    alert('Ошибка публикации: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
             .catch(error => {
                 console.error('Ошибка:', error);
-                alert('Ошибка соединения с сервером.');
+                alert('Ошибка соединения с сервером. Попробуйте еще раз через 10 секунд.');
             });
         });
     </script>
