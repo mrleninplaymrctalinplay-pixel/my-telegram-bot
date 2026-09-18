@@ -1,11 +1,15 @@
 import asyncio
 import logging
+from aiohttp import web
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
 # Токен вашего бота
 API_TOKEN = "8996747968:AAGt-wgqjd2Ao8stQezE_-othXKG3SC3Z54"
+
+# ID вашей группы администраторов
+ADMIN_GROUP_ID = -1003913257980
 
 # Ссылки на ваши мини-приложения через GitHub Pages
 URL_REGISTER = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/register.html"
@@ -85,6 +89,8 @@ async def process_app_buttons(callback_query: types.CallbackQuery):
     )
     
     try:
+        # Извлекаем ID игрока из текста сообщения (если мы сохранили его туда)
+        # Либо через reply_to
         if message.reply_to_message:
             target_user_id = message.reply_to_message.from_user.id
             await bot.send_message(target_user_id, status_msg, parse_mode="HTML")
@@ -93,7 +99,48 @@ async def process_app_buttons(callback_query: types.CallbackQuery):
 
     await callback_query.answer(answer_text)
 
+# 3. Веб-сервер для приема данных из Mini App (регистрация/жалобы)
+async def handle_webapp_data(request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        form_type = data.get("type", "registration") # registration или complaint
+        content = data.get("content", "Нет данных")
+        
+        # Кнопки для админов в группе
+        admin_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="✅ Одобрить", callback_data="app_approve"),
+                    InlineKeyboardButton(text="❌ Отклонить", callback_data="app_reject")
+                ]
+            ]
+        )
+        
+        if form_type == "registration":
+            group_text = f"📝 <b>Новая анкета персонажа!</b>\n\n{content}\n\n👤 ID игрока: <code>{user_id}</code>"
+        else:
+            group_text = f"⚠️ <b>Новая жалоба / репорт!</b>\n\n{content}\n\n👤 ID игрока: <code>{user_id}</code>"
+
+        # Отправляем в группу администраторов
+        await bot.send_message(chat_id=ADMIN_GROUP_ID, text=group_text, parse_mode="HTML", reply_markup=admin_kb)
+        
+        return web.json_response({"status": "success"})
+    except Exception as e:
+        logging.error(f"Ошибка обработки веб-аппа: {e}")
+        return web.json_response({"status": "error", "message": str(e)}, status=400)
+
 async def main():
+    # Настраиваем aiohttp сервер (Render требует открывать порт, например 8080)
+    app = web.Application()
+    app.router.add_post('/api/submit', handle_webapp_data)
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 8080)
+    await site.start()
+    
+    # Запускаем поллинг бота
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
