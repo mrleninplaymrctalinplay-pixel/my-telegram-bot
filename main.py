@@ -1,142 +1,195 @@
-import asyncio
+import os
+import random
 import logging
-from aiohttp import web
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
-from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from flask import Flask, request, jsonify
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 
-# Токен вашего бота
-API_TOKEN = "8996747968:AAGt-wgqjd2Ao8stQezE_-othXKG3SC3Z54"
+# Настройка логирования
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# ID вашей группы администраторов
-ADMIN_GROUP_ID = -1003913257980
+# Токен вашего бота и ID админ-группы (замените на свои или задайте в переменных среды Render)
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "ВАШ_ТОКЕН_БОТА")
+ADMIN_GROUP_ID = int(os.environ.get("ADMIN_GROUP_ID", "-100XXXXXXXXXX"))
 
-# Ссылки на ваши мини-приложения через GitHub Pages
-URL_REGISTER = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/register.html"
-URL_REPORT = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/complaints.html"
-URL_SOCIAL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/social.html"
+app_bot = Flask(__name__)
+telegram_app = None
 
-logging.basicConfig(level=logging.INFO)
+# Временное хранилище для ожидания причины отклонения от админов: {admin_telegram_id: target_user_id}
+PENDING_REJECT_PASSPORT = {}
+PENDING_REJECT_COMPLAINT = {}
 
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher()
+# --- Flask Маршруты для Mini App ---
+@app_bot.route('/api/submit', methods=['POST'])
+def handle_miniapp_submit():
+    data = request.json
+    if not data:
+        return jsonify({"status": "error", "message": "No data"}), 400
 
-# 1. Команда /start с выбором языка
-@dp.message(Command("start"))
-async def send_welcome(message: types.Message):
-    lang_keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
+    form_type = data.get('type')
+    user_id = data.get('user_id')
+    content = data.get('content')
+
+    if form_type == 'passport':
+        # Кнопки для проверки анкеты паспорта
+        keyboard = [
             [
-                InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru"),
-                InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en")
+                InlineKeyboardButton("✅ Одобрить", callback_data=f"pass_app_{user_id}"),
+                InlineKeyboardButton("❌ Отклонить", callback_data=f"pass_rej_{user_id}")
             ]
         ]
-    )
-    
-    await message.answer(
-        "🌍 <b>Добро пожаловать в GreeLand RP!</b>\nВыберите ваш язык / Choose your language:",
-        parse_mode="HTML",
-        reply_markup=lang_keyboard
-    )
+        text_to_admin = f"📋 **Новая заявка на паспорт / персонажа:**\n\n{content}"
 
-# Обработка выбора языка и вывод главного меню со всеми тремя Mini Apps
-@dp.callback_query(lambda c: c.data in ["lang_ru", "lang_en"])
-async def process_language(callback_query: types.CallbackQuery):
-    is_ru = callback_query.data == "lang_ru"
-    
-    if is_ru:
-        text = "🌲 <b>Главное меню GreeLand RP</b>\nВыберите нужный раздел ниже:"
-        btn_reg = "📝 Регистрация персонажа"
-        btn_rep = "⚠️ Подать жалобу"
-        btn_soc = "📸 Социальная сеть"
-    else:
-        text = "🌲 <b>GreeLand RP Main Menu</b>\nChoose a section below:"
-        btn_reg = "📝 Character Registration"
-        btn_rep = "⚠️ Report / Support"
-        btn_soc = "📸 Social Network"
-    
-    menu_keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=btn_reg, web_app=WebAppInfo(url=URL_REGISTER))],
-            [InlineKeyboardButton(text=btn_rep, web_app=WebAppInfo(url=URL_REPORT))],
-            [InlineKeyboardButton(text=btn_soc, web_app=WebAppInfo(url=URL_SOCIAL))]
+    elif form_type == 'complaint':
+        # Кнопки для проверки жалобы / предложения
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Принять / Одобрить", callback_data=f"comp_app_{user_id}"),
+                InlineKeyboardButton("❌ Отклонить", callback_data=f"comp_rej_{user_id}")
+            ]
         ]
-    )
-    
-    await callback_query.message.edit_text(text, parse_mode="HTML", reply_markup=menu_keyboard)
-    await callback_query.answer()
-
-# 2. Обработка кнопок «Одобрить» / «Отклонить» в группе администраторов
-@dp.callback_query(lambda c: c.data in ["app_approve", "app_reject"])
-async def process_app_buttons(callback_query: types.CallbackQuery):
-    message = callback_query.message
-    admin_name = callback_query.from_user.full_name
-    
-    if callback_query.data == "app_approve":
-        new_text = message.text + f"\n\n🟢 <b>СТАТУС: ОДОБРЕНО</b>\n👤 Проверил: {admin_name}"
-        status_msg = "🎉 <b>Поздравляем! Ваша анкета персонажа в GreeLand RP одобрена администрацией.</b> Добро пожаловать в игру!"
-        answer_text = "Анкета успешно одобрена!"
+        text_to_admin = f"⚖️ **Новое обращение с форума (Жалобы):**\n\n{content}"
     else:
-        new_text = message.text + f"\n\n🔴 <b>СТАТУС: ОТКЛОНЕНО</b>\n👤 Проверил: {admin_name}"
-        status_msg = "❌ <b>К сожалению, ваша анкета в GreeLand RP была отклонена.</b> Вы можете подать исправленную анкету заново через меню бота."
-        answer_text = "Анкета отклонена."
+        return jsonify({"status": "error", "message": "Unknown type"}), 400
 
-    await bot.edit_message_text(
-        chat_id=message.chat.id,
-        message_id=message.message_id,
-        text=new_text,
-        parse_mode="HTML"
-    )
+    # Отправка в админ-группу через Telegram Bot API (синхронно через requests или асинхронную очередь)
+    import requests
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": ADMIN_GROUP_ID,
+        "text": text_to_admin,
+        "parse_mode": "HTML",
+        "reply_markup": {"inline_keyboard": keyboard}
+    }
     
-    try:
-        if message.reply_to_message:
-            target_user_id = message.reply_to_message.from_user.id
-            await bot.send_message(target_user_id, status_msg, parse_mode="HTML")
-    except Exception as e:
-        logging.info(f"Не удалось отправить личное сообщение игроку: {e}")
+    response = requests.post(url, json=payload)
+    if response.status_code == 200:
+        return jsonify({"status": "success"})
+    else:
+        return jsonify({"status": "error", "message": "Telegram API error"}), 500
 
-    await callback_query.answer(answer_text)
 
-# 3. Веб-сервер для приема данных из Mini App (регистрация/жалобы)
-async def handle_webapp_data(request):
-    try:
-        data = await request.json()
-        user_id = data.get("user_id")
-        form_type = data.get("type", "registration")
-        content = data.get("content", "Нет данных")
+# --- Telegram Bot Обработчики ---
+async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+    admin_id = query.from_user.id
+
+    # 1. Обработка паспорта
+    if data.startswith("pass_app_"):
+        target_user_id = int(data.split("_")[2])
+        static_id = random.randint(1000, 9999)
         
-        admin_kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(text="✅ Одобрить", callback_data="app_approve"),
-                    InlineKeyboardButton(text="❌ Отклонить", callback_data="app_reject")
-                ]
-            ]
+        # Отправляем игроку паспорт с ID
+        try:
+            await context.bot.send_message(
+                chat_id=target_user_id,
+                text=f"✅ **Ваш паспорт и регистрация персонажа одобрены!**\n\n"
+                     f"🪪 **Ваш игровой Static ID:** `{static_id}`\n"
+                     f"🟢 Добро пожаловать в штат GreeLand RP!",
+                parse_mode="Markdown"
+            )
+        except Exception as e:
+            logger.error(f"Не удалось отправить сообщение игроку: {e}")
+
+        await query.edit_message_text(
+            text=f"{query.message.text}\n\n<b>[СТАТУС: ОДОБРЕНО]</b> Выдан Static ID: <code>{static_id}</code>",
+            parse_mode="HTML"
         )
-        
-        if form_type == "registration":
-            group_text = f"📝 <b>Новая анкета персонажа!</b>\n\n{content}\n\n👤 ID игрока: <code>{user_id}</code>"
-        else:
-            group_text = f"⚠️ <b>Новая жалоба / репорт!</b>\n\n{content}\n\n👤 ID игрока: <code>{user_id}</code>"
 
-        await bot.send_message(chat_id=ADMIN_GROUP_ID, text=group_text, parse_mode="HTML", reply_markup=admin_kb)
-        
-        return web.json_response({"status": "success"})
-    except Exception as e:
-        logging.error(f"Ошибка обработки веб-аппа: {e}")
-        return web.json_response({"status": "error", "message": str(e)}, status=400)
+    elif data.startswith("pass_rej_"):
+        target_user_id = int(data.split("_")[2])
+        PENDING_REJECT_PASSPORT[admin_id] = target_user_id
+        await query.message.reply_text(
+            "✍️ Введите причину отклонения паспорта следующим сообщением в этот чат:"
+        )
 
-async def main():
-    app = web.Application()
-    app.router.add_post('/api/submit', handle_webapp_data)
+    # 2. Обработка жалобы / предложения
+    elif data.startswith("comp_app_"):
+        target_user_id = int(data.split("_")[2])
+        try:
+            await context.bot.send_message(
+                chat_id=target_user_id,
+                text="✅ Ваша жалоба / предложение с форума была рассмотрена и **одобрена/принята администрацией**!",
+                parse_mode="Markdown"
+            )
+        except:
+            pass
+
+        await query.edit_message_text(
+            text=f"{query.message.text}\n\n<b>[СТАТУС: ОДОБРЕНО / ПРИНЯТО]</b>",
+            parse_mode="HTML"
+        )
+
+    elif data.startswith("comp_rej_"):
+        target_user_id = int(data.split("_")[2])
+        PENDING_REJECT_COMPLAINT[admin_id] = target_user_id
+        await query.message.reply_text(
+            "✍️ Введите причину отклонения жалобы следующим сообщением в этот чат:"
+        )
+
+
+async def admin_text_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    admin_id = update.effective_user.id
+    text = update.message.text
+
+    # Проверяем, ожидает ли бот причину отклонения паспорта
+    if admin_id in PENDING_REJECT_PASSPORT:
+        target_user_id = PENDING_REJECT_PASSPORT.pop(admin_id)
+        try:
+            await context.bot.send_message(
+                chat_id=target_user_id,
+                text=f"❌ **К сожалению, ваша заявка на регистрацию персонажа была отклонена.**\n\n"
+                     f"📌 **Причина:** {text}",
+                parse_mode="Markdown"
+            )
+            await update.message.reply_text("✅ Уведомление об отклонении паспорта отправлено игроку.")
+        except Exception as e:
+            await update.message.reply_text(f"⚠️ Ошибка отправки игроку: {e}")
+
+    # Проверяем, ожидает ли бот причину отклонения жалобы
+    elif admin_id in PENDING_REJECT_COMPLAINT:
+        target_user_id = PENDING_REJECT_COMPLAINT.pop(admin_id)
+        try:
+            await context.bot.send_message(
+                chat_id=target_user_id,
+                text=f"❌ **Ваша тема / жалоба на форуме была отклонена.**\n\n"
+                     f"📌 **Причина:** {text}",
+                parse_mode="Markdown"
+            )
+            await update.message.reply_text("✅ Уведомление об отклонении жалобы отправлено игроку.")
+        except Exception as e:
+            await update.message.reply_text(f"⚠️ Ошибка отправки игроку: {e}")
+
+
+def main():
+    global telegram_app
+    if TELEGRAM_TOKEN == "ВАШ_ТОКЕН_БОТА":
+        logger.error("Укажите правильный TELEGRAM_TOKEN!")
+        return
+
+    telegram_app = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    # Регистрация обработчиков Telegram
+    telegram_app.add_handler(CallbackQueryHandler(button_callback_handler))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_text_message_handler))
+
+    # Запуск бота в фоновом режиме, а Flask — на порту Render
+    port = int(os.environ.get("PORT", 5000))
     
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', 8080)
-    await site.start()
-    
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    # Инициализация и запуск асинхронного бота вместе с Flask
+    import threading
+    def run_flask():
+        app_bot.run(host="0.0.0.0", port=port)
 
-if __name__ == '__main__':
-    asyncio.run(main())
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.start()
+
+    logger.info("Бот и сервер запущены!")
+    telegram_app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
