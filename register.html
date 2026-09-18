@@ -3,307 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация персонажа - GreeLand</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>GreeLand - Создание персонажа</title>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --text-color: #f8fafc;
-            --accent-color: #38bdf8;
-            --border-color: #334155;
-            --success-color: #22c55e;
+            --bg-color: #000000;
+            --surface-color: #121212;
+            --card-color: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e8e;
+            --accent-color: #ff3b30;
+            --accent-gradient: linear-gradient(135deg, #ff7a00, #ff007a, #7a00ff);
+            --border-color: #262626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             padding: 20px;
-            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Анимация падающих канадских листьев */
-        .leaf {
-            position: fixed;
-            top: -10px;
-            color: #f97316;
-            font-size: 20px;
-            user-select: none;
-            z-index: 999;
-            animation: fall linear infinite;
-        }
-
-        @keyframes fall {
-            0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(105vh) rotate(360deg); opacity: 0.2; }
-        }
-
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid var(--border-color);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-            position: relative;
-            z-index: 10;
-        }
-
-        h2 {
-            text-align: center;
-            color: var(--accent-color);
-            margin-top: 0;
-        }
-
-        .step {
-            display: none;
-        }
-
-        .step.active {
-            display: block;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-
-        input, textarea {
+        .char-container {
             width: 100%;
-            background: var(--bg-color);
+            max-width: 420px;
+            background: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px 20px;
+        }
+
+        .logo-title {
+            font-size: 26px;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            text-align: center;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--surface-color);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 10px;
-            color: var(--text-color);
-            font-size: 16px;
-            margin-bottom: 20px;
-            box-sizing: border-box;
+            color: var(--text-primary);
+            font-size: 14px;
+            outline: none;
         }
 
-        .buttons {
-            display: flex;
-            gap: 10px;
+        .form-group textarea {
+            height: 80px;
+            resize: none;
         }
 
-        button {
-            flex: 1;
-            background: var(--accent-color);
-            color: #0f172a;
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus {
+            border-color: #0095f6;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: #0095f6;
+            color: white;
             border: none;
             border-radius: 8px;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
-            transition: opacity 0.2s;
+            margin-top: 8px;
         }
 
-        button.secondary {
-            background: var(--border-color);
-            color: var(--text-color);
-        }
-
-        button:active {
-            opacity: 0.8;
-        }
-
-        .progress {
-            text-align: center;
-            font-size: 12px;
-            color: #94a3b8;
-            margin-bottom: 15px;
+        .btn-submit:hover {
+            background: #1877f2;
         }
     </style>
 </head>
 <body>
 
-    <!-- Генерация падающих листьев -->
-    <script>
-        function createLeaf() {
-            const leaf = document.createElement('div');
-            leaf.className = 'leaf';
-            leaf.innerHTML = '🍁';
-            leaf.style.left = Math.random() * 100 + 'vw';
-            leaf.style.animationDuration = (Math.random() * 3 + 3) + 's';
-            leaf.style.fontSize = (Math.random() * 10 + 15) + 'px';
-            document.body.appendChild(leaf);
-            setTimeout(() => leaf.remove(), 6000);
-        }
-        setInterval(createLeaf, 400);
-    </script>
+    <div class="char-container">
+        <div class="logo-title">Регистрация персонажа</div>
+        <div class="subtitle">Заполните данные для мира GreeLand</div>
+        
+        <form onsubmit="saveCharacter(event)">
+            <div class="form-group">
+                <label>1. ФИО персонажа</label>
+                <input type="text" id="charFio" placeholder="Например: Смирнов Алексей Дмитриевич" required>
+            </div>
 
-    <div class="container">
-        <h2>🍁 Регистрация в GreeLand</h2>
-        <div class="progress" id="progress-text">Шаг 1 из 12</div>
+            <div class="form-group">
+                <label>2. Игровой ник / Юзернейм</label>
+                <input type="text" id="charNick" placeholder="Например: alex_storm" required>
+            </div>
 
-        <form id="reg-form">
-            <!-- Шаг 1 -->
-            <div class="step active" data-step="1">
-                <label>1. Имя персонажа:</label>
-                <input type="text" id="name" required placeholder="Введите имя...">
-                <button type="button" onclick="nextStep()">Далее ➡️</button>
+            <div class="form-group">
+                <label>3. Роль / Класс</label>
+                <select id="charRole">
+                    <option value="Искатель">Искатель приключений</option>
+                    <option value="Торговец">Торговец</option>
+                    <option value="Инженер">Инженер</option>
+                    <option value="Исследователь">Исследователь</option>
+                </select>
             </div>
-            <!-- Шаг 2 -->
-            <div class="step" data-step="2">
-                <label>2. Возраст:</label>
-                <input type="number" id="age" required placeholder="Например: 25">
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
+
+            <div class="form-group">
+                <label>4. Краткая предыстория</label>
+                <textarea id="charBio" placeholder="Например: Родился в северном районе, увлекается технологиями..."></textarea>
             </div>
-            <!-- Шаг 3 -->
-            <div class="step" data-step="3">
-                <label>3. Пол:</label>
-                <input type="text" id="gender" required placeholder="Мужской / Женский / Другой">
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 4 -->
-            <div class="step" data-step="4">
-                <label>4. Раса / Вид:</label>
-                <input type="text" id="race" required placeholder="Человек, эльф, андроид...">
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 5 -->
-            <div class="step" data-step="5">
-                <label>5. Внешность:</label>
-                <textarea id="appearance" rows="3" placeholder="Опишите рост, волосы, глаза, стиль одежды..."></textarea>
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 6 -->
-            <div class="step" data-step="6">
-                <label>6. Характер:</label>
-                <textarea id="character" rows="3" placeholder="Добрый, хитрый, замкнутый..."></textarea>
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 7 -->
-            <div class="step" data-step="7">
-                <label>7. Биография:</label>
-                <textarea id="bio" rows="3" placeholder="Откуда ваш персонаж родом? Краткая история..."></textarea>
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 8 -->
-            <div class="step" data-step="8">
-                <label>8. Профессия / Занятие:</label>
-                <input type="text" id="job" placeholder="Охотник, торговец, ученый...">
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 9 -->
-            <div class="step" data-step="9">
-                <label>9. Главные навыки:</label>
-                <input type="text" id="skills" placeholder="Стрельба, магия, хакерство...">
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 10 -->
-            <div class="step" data-step="10">
-                <label>10. Слабости:</label>
-                <input type="text" id="weaknesses" placeholder="Боязнь высоты, излишняя доверчивость...">
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 11 -->
-            <div class="step" data-step="11">
-                <label>11. Главная цель:</label>
-                <input type="text" id="goal" placeholder="Чего ваш персонаж хочет добиться?">
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="button" onclick="nextStep()">Далее ➡️</button>
-                </div>
-            </div>
-            <!-- Шаг 12 -->
-            <div class="step" data-step="12">
-                <label>12. Дополнительно (инвентарь, секреты):</label>
-                <textarea id="extra" rows="3" placeholder="Любимый предмет, записка в кармане..."></textarea>
-                <div class="buttons">
-                    <button type="button" class="secondary" onclick="prevStep()">⬅️ Назад</button>
-                    <button type="submit" style="background: var(--success-color); color: white;">💾 Завершить и отправить</button>
-                </div>
-            </div>
+
+            <button type="submit" class="btn-submit">Создать персонажа</button>
         </form>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        let currentStep = 1;
-        const totalSteps = 12;
-
-        function updateSteps() {
-            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            document.querySelector(`.step[data-step="${currentStep}"]`).classList.add('active');
-            document.getElementById('progress-text').innerText = `Шаг ${currentStep} из ${totalSteps}`;
-        }
-
-        function nextStep() {
-            const activeInput = document.querySelector(`.step[data-step="${currentStep}"] input, .step[data-step="${currentStep}"] textarea`);
-            if (activeInput && activeInput.hasAttribute('required') && !activeInput.value.trim()) {
-                alert('Пожалуйста, заполните это поле!');
-                return;
-            }
-            if (currentStep < totalSteps) {
-                currentStep++;
-                updateSteps();
-            }
-        }
-
-        function prevStep() {
-            if (currentStep > 1) {
-                currentStep--;
-                updateSteps();
-            }
-        }
-
-        document.getElementById('reg-form').addEventListener('submit', function(e) {
-            e.preventDefault();
+        function saveCharacter(event) {
+            event.preventDefault();
             
-            const data = {
-                name: document.getElementById('name').value,
-                age: document.getElementById('age').value,
-                gender: document.getElementById('gender').value,
-                race: document.getElementById('race').value,
-                appearance: document.getElementById('appearance').value,
-                character: document.getElementById('character').value,
-                bio: document.getElementById('bio').value,
-                job: document.getElementById('job').value,
-                skills: document.getElementById('skills').value,
-                weaknesses: document.getElementById('weaknesses').value,
-                goal: document.getElementById('goal').value,
-                extra: document.getElementById('extra').value
-            };
-
-            // Отправляем данные боту и закрываем WebApp
-            tg.sendData(JSON.stringify(data));
-            tg.close();
-        });
+            const fio = document.getElementById('charFio').value;
+            const nick = document.getElementById('charNick').value;
+            
+            alert(`Персонаж "${fio}" (@${nick}) успешно зарегистрирован!`);
+            
+            // Если нужно сразу перенаправлять в ленту (social.html), раскомментируйте строчку ниже:
+            // window.location.href = "social.html";
+        }
     </script>
 </body>
 </html>
