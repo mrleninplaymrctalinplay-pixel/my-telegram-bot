@@ -11,8 +11,8 @@ from telegram.ext import Application, CallbackQueryHandler, MessageHandler, Cont
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "ВАШ_ТОКЕН_БОТА")
-ADMIN_GROUP_ID = -1003913257980  # Ваш ID группы прописан напрямую
+TELEGRAM_TOKEN = "8996747968:AAGt-wgqjd2Ao8stQezE_-othXKG3SC3Z54"
+ADMIN_GROUP_ID = -1003913257980
 
 app_bot = Flask(__name__)
 
@@ -36,7 +36,7 @@ def handle_miniapp_submit():
                 InlineKeyboardButton("❌ Отклонить", callback_data=f"pass_rej_{user_id}")
             ]
         ]
-        text_to_admin = f"📋 **Новая заявка на паспорт / персонажа:**\n\n{content}"
+        text_to_admin = f"📋 <b>Новая заявка на паспорт / персонажа:</b>\n\n{content}"
 
     elif form_type == 'complaint':
         keyboard = [
@@ -45,7 +45,7 @@ def handle_miniapp_submit():
                 InlineKeyboardButton("❌ Отклонить", callback_data=f"comp_rej_{user_id}")
             ]
         ]
-        text_to_admin = f"⚖️ **Новое обращение с форума (Жалобы):**\n\n{content}"
+        text_to_admin = f"⚖️ <b>Новое обращение с форума (Жалобы):</b>\n\n{content}"
     else:
         return jsonify({"status": "error", "message": "Unknown type"}), 400
 
@@ -84,10 +84,10 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         try:
             await context.bot.send_message(
                 chat_id=target_user_id,
-                text=f"✅ **Ваш паспорт и регистрация персонажа одобрены!**\n\n"
-                     f"🪪 **Ваш игровой Static ID:** `{static_id}`\n"
+                text=f"✅ <b>Ваш паспорт и регистрация персонажа одобрены!</b>\n\n"
+                     f"🪪 <b>Ваш игровой Static ID:</b> <code>{static_id}</code>\n"
                      f"🟢 Добро пожаловать в штат GreeLand RP!",
-                parse_mode="Markdown"
+                parse_mode="HTML"
             )
         except Exception as e:
             logger.error(f"Ошибка отправки игроку: {e}")
@@ -107,8 +107,8 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         try:
             await context.bot.send_message(
                 chat_id=target_user_id,
-                text="✅ Ваша жалоба / обращение на форуме была рассмотрена и **одобрена администрацией**!",
-                parse_mode="Markdown"
+                text="✅ Ваша жалоба / обращение на форуме была рассмотрена и <b>одобрена администрацией</b>!",
+                parse_mode="HTML"
             )
         except Exception as e:
             logger.error(f"Ошибка отправки игроку: {e}")
@@ -133,8 +133,8 @@ async def admin_text_message_handler(update: Update, context: ContextTypes.DEFAU
         try:
             await context.bot.send_message(
                 chat_id=target_user_id,
-                text=f"❌ **Ваша заявка на регистрацию персонажа была отклонена.**\n\n📌 **Причина:** {text}",
-                parse_mode="Markdown"
+                text=f"❌ <b>Ваша заявка на регистрацию персонажа была отклонена.</b>\n\n📌 <b>Причина:</b> {text}",
+                parse_mode="HTML"
             )
             await update.message.reply_text("✅ Уведомление об отклонении паспорта отправлено.")
         except Exception as e:
@@ -145,8 +145,8 @@ async def admin_text_message_handler(update: Update, context: ContextTypes.DEFAU
         try:
             await context.bot.send_message(
                 chat_id=target_user_id,
-                text=f"❌ **Ваша тема / жалоба на форуме была отклонена.**\n\n📌 **Причина:** {text}",
-                parse_mode="Markdown"
+                text=f"❌ <b>Ваша тема / жалоба на форуме была отклонена.</b>\n\n📌 <b>Причина:</b> {text}",
+                parse_mode="HTML"
             )
             await update.message.reply_text("✅ Уведомление об отклонении жалобы отправлено.")
         except Exception as e:
@@ -154,10 +154,6 @@ async def admin_text_message_handler(update: Update, context: ContextTypes.DEFAU
 
 
 def main():
-    if TELEGRAM_TOKEN == "ВАШ_ТОКЕН_БОТА":
-        logger.error("Укажите правильный TELEGRAM_TOKEN!")
-        return
-
     telegram_app = Application.builder().token(TELEGRAM_TOKEN).build()
     telegram_app.add_handler(CallbackQueryHandler(button_callback_handler))
     telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, admin_text_message_handler))
@@ -171,7 +167,7 @@ def main():
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.start()
 
-    logger.info("Бот и сервер запущены!")
+    logger.info("Бот и сервер запущены успешно!")
     telegram_app.run_polling()
 
 
