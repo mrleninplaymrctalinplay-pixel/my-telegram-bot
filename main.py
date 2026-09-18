@@ -89,8 +89,6 @@ async def process_app_buttons(callback_query: types.CallbackQuery):
     )
     
     try:
-        # Извлекаем ID игрока из текста сообщения (если мы сохранили его туда)
-        # Либо через reply_to
         if message.reply_to_message:
             target_user_id = message.reply_to_message.from_user.id
             await bot.send_message(target_user_id, status_msg, parse_mode="HTML")
@@ -104,10 +102,9 @@ async def handle_webapp_data(request):
     try:
         data = await request.json()
         user_id = data.get("user_id")
-        form_type = data.get("type", "registration") # registration или complaint
+        form_type = data.get("type", "registration")
         content = data.get("content", "Нет данных")
         
-        # Кнопки для админов в группе
         admin_kb = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -122,7 +119,6 @@ async def handle_webapp_data(request):
         else:
             group_text = f"⚠️ <b>Новая жалоба / репорт!</b>\n\n{content}\n\n👤 ID игрока: <code>{user_id}</code>"
 
-        # Отправляем в группу администраторов
         await bot.send_message(chat_id=ADMIN_GROUP_ID, text=group_text, parse_mode="HTML", reply_markup=admin_kb)
         
         return web.json_response({"status": "success"})
@@ -131,7 +127,6 @@ async def handle_webapp_data(request):
         return web.json_response({"status": "error", "message": str(e)}, status=400)
 
 async def main():
-    # Настраиваем aiohttp сервер (Render требует открывать порт, например 8080)
     app = web.Application()
     app.router.add_post('/api/submit', handle_webapp_data)
     
@@ -140,7 +135,7 @@ async def main():
     site = web.TCPSite(runner, '0.0.0.0', 8080)
     await site.start()
     
-    # Запускаем поллинг бота
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
