@@ -3,256 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GreeLand - Форум жалоб и предложений</title>
+    <title>Подать жалобу - GreeLand RP</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg-color: #0f1115;
-            --surface-color: #161920;
-            --card-color: #1e222d;
-            --text-primary: #ffffff;
-            --text-secondary: #8b949e;
-            --accent-red: #e53935;
-            --accent-red-hover: #c62828;
-            --border-color: #2d333b;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-
         body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #ffffff;
             padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            margin: 0;
         }
-
-        button, input, textarea, select {
-            outline: none;
-        }
-
-        .forum-container {
-            width: 100%;
-            max-width: 550px;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-
-        .forum-header {
-            background: var(--card-color);
-            padding: 16px 20px;
-            border-bottom: 2px solid var(--accent-red);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .forum-header h2 {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .forum-body {
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #1e1e1e;
             padding: 20px;
+            border-radius: 10px;
         }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
-        }
-
-        .form-group input, 
-        .form-group select, 
-        .form-group textarea {
+        h2 { text-align: center; color: #e74c3c; }
+        label { display: block; margin-top: 10px; font-size: 14px; }
+        input, textarea {
             width: 100%;
-            padding: 12px;
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus, 
-        .form-group select:focus, 
-        .form-group textarea:focus {
-            border-color: var(--accent-red);
-        }
-
-        .form-group textarea {
-            height: 110px;
-            resize: none;
-        }
-
-        .btn-submit {
-            width: 100%;
-            padding: 14px;
-            background: var(--accent-red);
+            padding: 10px;
+            margin-top: 5px;
+            background: #2d2d2d;
+            border: 1px solid #444;
             color: white;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        textarea { resize: vertical; height: 120px; }
+        button {
+            width: 100%;
+            background-color: #c0392b;
+            color: white;
+            padding: 12px;
             border: none;
-            border-radius: 6px;
-            font-weight: 700;
-            font-size: 14px;
+            border-radius: 5px;
+            font-size: 16px;
             cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: background 0.2s;
+            margin-top: 20px;
         }
-
-        .btn-submit:hover {
-            background: var(--accent-red-hover);
-        }
-
-        .rules-hint {
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-top: 12px;
-            text-align: center;
-            line-height: 1.4;
-        }
+        button:hover { background-color: #e74c3c; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h2>⚠️ Подать жалобу / репорт</h2>
+        <form id="complaintForm">
+            <label>На кого или на что жалоба:</label>
+            <input type="text" id="target" required placeholder="Имя игрока или суть ситуации">
 
-    <div class="forum-container">
-        <div class="forum-header">
-            <span>🚨</span>
-            <h2>Подача жалобы / предложения</h2>
-        </div>
-        
-        <div class="forum-body">
-            <form id="reportForm" onsubmit="sendToTelegram(event)">
-                
-                <div class="form-group">
-                    <label>Ваш игровой ник (ФИО / ID)</label>
-                    <input type="text" id="senderName" placeholder="Например: Иван Иванов [#12]" required>
-                </div>
+            <label>Описание жалобы:</label>
+            <textarea id="complaintText" required placeholder="Опишите подробно, что произошло..."></textarea>
 
-                <div class="form-group">
-                    <label>Тип обращения</label>
-                    <select id="reportType" onchange="updateTemplate()">
-                        <option value="Жалоба на игрока">Жалоба на игрока</option>
-                        <option value="Жалоба на администрацию">Жалоба на администрацию</option>
-                        <option value="Предложение по улучшению">Предложение по улучшению</option>
-                        <option value="Баг / Ошибка">Баг / Ошибка</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Нарушитель (если применимо)</label>
-                    <input type="text" id="targetUser" placeholder="Ник или ID нарушителя">
-                </div>
-
-                <div class="form-group">
-                    <label>Ссылка на скриншот / видео (Imgur, ImgBB, YouTube)</label>
-                    <input type="url" id="mediaLink" placeholder="https://imgur.com/...">
-                </div>
-
-                <div class="form-group">
-                    <label>Суть проблемы</label>
-                    <textarea id="reportText" placeholder="Опишите подробно ситуацию..." required></textarea>
-                </div>
-
-                <button type="submit" class="btn-submit">Опубликовать обращение</button>
-                
-                <div class="rules-hint">
-                    Заведомо ложные обвинения или спам могут привести к блокировке аккаунта в системе GreeLand.
-                </div>
-            </form>
-        </div>
+            <button type="submit">ОТПРАВИТЬ ЖАЛОБУ</button>
+        </form>
     </div>
 
     <script>
-        // Шаблоны под каждую категорию
-        const templates = {
-            "Жалоба на игрока": "1. Описание ситуации:\n2. Время нарушения:\n3. Доказательства ниже.",
-            "Жалоба на администрацию": "1. Суть претензии:\n2. Дата выдачи наказания / ситуации:\n3. В чем не согласен:",
-            "Предложение по улучшению": "1. Суть идеи:\n2. Как это улучшит игровой процесс в GreeLand:\n3. Примеры реализации:",
-            "Баг / Ошибка": "1. Подробное описание бага:\n2. Как воспроизвести ошибку:\n3. Скриншоты/Видео проблемы:"
-        };
+        let tg = window.Telegram.WebApp;
+        tg.expand();
 
-        // Автоматически меняем текст в поле при смене категории
-        function updateTemplate() {
-            const type = document.getElementById('reportType').value;
-            const textArea = document.getElementById('reportText');
-            if(templates[type]) {
-                textArea.value = templates[type];
-            }
-        }
+        document.getElementById('complaintForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        // Устанавливаем шаблон при первом запуске
-        window.onload = function() {
-            updateTemplate();
-        };
+            const formData = {
+                type: "complaint",
+                user_id: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0,
+                content: `<b>Нарушитель / Ситуация:</b> ${document.getElementById('target').value}\n` +
+                         `<b>Описание жалобы:</b> ${document.getElementById('complaintText').value}`
+            };
 
-        function sendToTelegram(event) {
-            event.preventDefault();
+            // Ссылка на ваш рабочий сервер Render
+            const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com/api/submit';
 
-            const BOT_TOKEN = "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI"; 
-            const CHAT_ID = "-1003913257980";
-
-            const sender = document.getElementById('senderName').value;
-            const type = document.getElementById('reportType').value;
-            const target = document.getElementById('targetUser').value || "Не указан";
-            const media = document.getElementById('mediaLink').value || "Отсутствуют";
-            const text = document.getElementById('reportText').value;
-
-            const message = `🚨 <b>НОВОЕ ОБРАЩЕНИЕ С ФОРУМА</b>\n\n` +
-                            `📌 <b>Тип:</b> ${type}\n` +
-                            `👤 <b>Отправитель:</b> ${sender}\n` +
-                            `🎯 <b>Нарушитель:</b> ${target}\n` +
-                            `🔗 <b>Доказательства:</b> ${media}\n\n` +
-                            `💬 <b>Описание:</b>\n${text}`;
-
-            const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-
-            fetch(url, {
+            fetch(RENDER_API_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
+                body: JSON.stringify(formData)
             })
-            .then(async response => {
-                const data = await response.json();
-                if (response.ok && data.ok) {
-                    alert("Ваше обращение успешно отправлено в группу администрации!");
-                    document.getElementById('reportForm').reset();
-                    updateTemplate();
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Жалоба успешно отправлена администраторам!');
+                    tg.close();
                 } else {
-                    alert("Ошибка Telegram API: " + (data.description || "Проверьте токен и права бота."));
+                    alert('Ошибка отправки: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
             .catch(error => {
-                console.error('Ошибка сети:', error);
-                alert("Ошибка отправки! Возможно, браузер блокирует прямой запрос к Telegram (CORS).");
+                console.error('Ошибка:', error);
+                alert('Ошибка соединения с сервером.');
             });
-        }
+        });
     </script>
 </body>
 </html>
