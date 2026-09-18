@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Подать жалобу - GreeLand RP</title>
+    <title>Обращение / Жалоба - GreeLand RP</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -22,7 +22,7 @@
         }
         h2 { text-align: center; color: #e74c3c; }
         label { display: block; margin-top: 10px; font-size: 14px; }
-        input, textarea {
+        input, select, textarea {
             width: 100%;
             padding: 10px;
             margin-top: 5px;
@@ -49,15 +49,22 @@
 </head>
 <body>
     <div class="container">
-        <h2>⚠️ Подать жалобу / репорт</h2>
+        <h2>⚠️ Центр жалоб и предложений</h2>
         <form id="complaintForm">
-            <label>На кого или на что жалоба:</label>
-            <input type="text" id="target" required placeholder="Имя игрока или суть ситуации">
+            <label>Тип обращения:</label>
+            <select id="complaintType">
+                <option value="Жалоба на игрока">👤 Жалоба на игрока</option>
+                <option value="Жалоба на администрацию">🛡️ Жалоба на администрацию</option>
+                <option value="Предложение по улучшению">💡 Предложение по улучшению</option>
+            </select>
 
-            <label>Описание жалобы:</label>
-            <textarea id="complaintText" required placeholder="Опишите подробно, что произошло..."></textarea>
+            <label>На кого или на что (ник / тема):</label>
+            <input type="text" id="target" required placeholder="Например: Nick_Name или суть идеи">
 
-            <button type="submit">ОТПРАВИТЬ ЖАЛОБУ</button>
+            <label>Подробное описание:</label>
+            <textarea id="complaintText" required placeholder="Опишите подробно суть жалобы или вашего предложения..."></textarea>
+
+            <button type="submit">ОТПРАВИТЬ ОБРАЩЕНИЕ</button>
         </form>
     </div>
 
@@ -68,14 +75,18 @@
         document.getElementById('complaintForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            const cType = document.getElementById('complaintType').value;
+            const targetVal = document.getElementById('target').value;
+            const textVal = document.getElementById('complaintText').value;
+
             const formData = {
                 type: "complaint",
                 user_id: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0,
-                content: `<b>Нарушитель / Ситуация:</b> ${document.getElementById('target').value}\n` +
-                         `<b>Описание жалобы:</b> ${document.getElementById('complaintText').value}`
+                content: `<b>Категория:</b> ${cType}\n` +
+                         `<b>Объект / Тема:</b> ${targetVal}\n` +
+                         `<b>Описание:</b> ${textVal}`
             };
 
-            // Ссылка на ваш рабочий сервер Render
             const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com/api/submit';
 
             fetch(RENDER_API_URL, {
@@ -88,7 +99,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert('Жалоба успешно отправлена администраторам!');
+                    alert('Обращение успешно отправлено администраторам!');
                     tg.close();
                 } else {
                     alert('Ошибка отправки: ' + (data.message || 'Неизвестная ошибка'));
