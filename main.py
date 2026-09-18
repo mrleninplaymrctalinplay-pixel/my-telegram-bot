@@ -10,7 +10,7 @@ from aiogram.filters import CommandStart, Command
 from aiogram.fsm.storage.memory import MemoryStorage
 
 # Самый точный и рабочий токен бота
-TOKEN = "8996747986:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sl"
+TOKEN = "8996747968:AAGiV1p5kHoy-gQ2YDVknlmD2h3snSVe3sI"
 
 # Ссылки на ваши мини-приложения на GitHub Pages
 SOCIAL_URL = "https://mrleninplaymrctalinplay-pixel.github.io/my-telegram-bot/social.html"
