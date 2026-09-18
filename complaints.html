@@ -3,217 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GreeLand Social - Инстаграм</title>
+    <title>Форум жалоб - GreeLand RP</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #0f1115;
-            --card-bg: #181b22;
-            --accent-color: #e1306c; /* Инстаграмовский розово-красный акцент */
-            --accent-hover: #c12258;
+            --bg-color: #0d0f12;
+            --card-bg: #161920;
+            --accent-color: #f39c12;
+            --accent-hover: #e67e22;
             --text-main: #ffffff;
-            --text-muted: #8a9ba8;
-            --border-color: #262b36;
+            --text-muted: #8b949e;
+            --border-color: #21262d;
         }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            padding: 12px;
+            padding: 15px;
             margin: 0;
         }
         .container {
             max-width: 500px;
             margin: 0 auto;
         }
-        /* Профиль шапка */
-        .profile-header {
+        .forum-header {
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-color);
             padding: 15px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            border-radius: 8px;
             margin-bottom: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-        .profile-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
+        .forum-header h2 {
+            margin: 0;
+            font-size: 17px;
+            color: var(--accent-color);
+            letter-spacing: 0.5px;
         }
-        .avatar {
-            width: 55px;
-            height: 55px;
-            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            padding: 2px;
-        }
-        .avatar-inner {
-            width: 100%;
-            height: 100%;
-            background: #181b22;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .stats {
-            display: flex;
-            gap: 12px;
-            text-align: center;
+        .forum-header p {
+            margin: 5px 0 0 0;
             font-size: 12px;
+            color: var(--text-muted);
         }
-        .stat-num {
-            font-weight: bold;
-            font-size: 15px;
-            color: var(--text-main);
-        }
-        /* Создание поста */
-        .create-post {
+        .form-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            padding: 15px;
+            padding: 18px;
             border-radius: 12px;
-            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
-        textarea, input {
+        label {
+            display: block;
+            margin-top: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input, select, textarea {
             width: 100%;
             padding: 12px;
-            margin-top: 8px;
-            background: #0f1115;
+            margin-top: 6px;
+            background: #0d0f12;
             border: 1px solid var(--border-color);
-            color: white;
+            color: var(--text-main);
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 14px;
             transition: border-color 0.2s;
         }
-        textarea:focus, input:focus {
+        input:focus, select:focus, textarea:focus {
             border-color: var(--accent-color);
             outline: none;
+        }
+        textarea {
+            resize: vertical;
+            height: 110px;
         }
         button {
             width: 100%;
             background-color: var(--accent-color);
-            color: white;
-            padding: 12px;
+            color: #0d0f12;
+            padding: 14px;
             border: none;
             border-radius: 8px;
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 800;
             cursor: pointer;
-            margin-top: 12px;
+            margin-top: 20px;
             transition: background-color 0.2s, transform 0.1s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        /* Микро-анимация клика для всех кнопок */
+        button:hover {
+            background-color: var(--accent-hover);
+        }
         button:active {
-            transform: scale(0.96);
-        }
-        button:hover { 
-            background-color: var(--accent-hover); 
-        }
-        /* Посты (Карточки ленты) */
-        .post {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-        }
-        .post-author {
-            font-weight: bold;
-            color: var(--text-main);
-            font-size: 14px;
-            margin-bottom: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .post-content {
-            font-size: 14px;
-            margin-bottom: 12px;
-            word-break: break-word;
-            line-height: 1.4;
-            color: #d1d5db;
-        }
-        .post-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 14px;
-            border-top: 1px solid var(--border-color);
-            padding-top: 10px;
-        }
-        /* Кнопка лайка с микро-анимацией сердцебиения */
-        .like-btn {
-            background: none;
-            border: none;
-            color: #ff4757;
-            cursor: pointer;
-            font-size: 16px;
-            width: auto;
-            margin: 0;
-            padding: 4px 8px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: background 0.2s, transform 0.2s ease;
-        }
-        .like-btn:active {
-            transform: scale(1.3); /* Эффект пульсации сердечка при клике */
-        }
-        .like-btn:hover {
-            background: rgba(255, 71, 87, 0.1);
+            transform: scale(0.97);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Шапка профиля -->
-        <div class="profile-header">
-            <div class="profile-info">
-                <div class="avatar">
-                    <div class="avatar-inner">📸</div>
-                </div>
-                <div>
-                    <div id="userName" style="font-weight: bold; font-size: 15px;">Фотограф</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">@id<span id="userIdDisplay">0</span></div>
-                </div>
-            </div>
-            <div class="stats">
-                <div>
-                    <div class="stat-num" id="postsCount">0</div>
-                    <div style="color: var(--text-muted);">постов</div>
-                </div>
-                <div>
-                    <div class="stat-num" id="followersCount">0</div>
-                    <div style="color: var(--text-muted);">подписчики</div>
-                </div>
-                <div>
-                    <div class="stat-num" id="followingCount">0</div>
-                    <div style="color: var(--text-muted);">подписки</div>
-                </div>
-            </div>
+        <div class="forum-header">
+            <h2>GREE LAND // FORUM</h2>
+            <p>Подача жалоб, заявлений и предложений по развитию проекта</p>
         </div>
 
-        <!-- Создание публикации -->
-        <div class="create-post">
-            <h3 style="margin: 0 0 8px 0; font-size: 15px; color: var(--text-muted);">✨ Новая публикация</h3>
-            <input type="text" id="postTitle" placeholder="Имя вашего персонажа">
-            <textarea id="postText" placeholder="Поделитесь моментами из жизни штата..." rows="2"></textarea>
-            <button onclick="createPost()">Поделиться фото/историей</button>
-        </div>
+        <div class="form-card">
+            <form id="forumForm">
+                <label>Раздел форума:</label>
+                <select id="sectionType">
+                    <option value="Жалоба на игрока">📂 Жалобы на игроков</option>
+                    <option value="Жалоба на администрацию">🛡️ Жалобы на администрацию</option>
+                    <option value="Предложение по улучшению">💡 Предложения по улучшению</option>
+                </select>
 
-        <!-- Лента -->
-        <div id="feed">
-            <p style="text-align: center; color: var(--text-muted);">Загрузка ленты...</p>
+                <label>Ваш Static ID / NickName:</label>
+                <input type="text" id="author" required placeholder="Например: John Smith [12345]">
+
+                <label>Нарушитель / Тема обращения:</label>
+                <input type="text" id="target" required placeholder="Укажите ID нарушителя или название темы">
+
+                <label>Суть обращения / Доказательства:</label>
+                <textarea id="description" required placeholder="Подробно опишите ситуацию, приложите тайм-коды или ссылки..."></textarea>
+
+                <button type="submit">Создать тему</button>
+            </form>
         </div>
     </div>
 
@@ -221,95 +138,46 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        const userId = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 12345;
-        const userNameTg = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : "Игрок";
-        
-        document.getElementById('userIdDisplay').innerText = userId;
-        document.getElementById('userName').innerText = userNameTg;
-        document.getElementById('postTitle').value = userNameTg;
+        document.getElementById('forumForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com';
+            const section = document.getElementById('sectionType').value;
+            const author = document.getElementById('author').value.trim();
+            const target = document.getElementById('target').value.trim();
+            const description = document.getElementById('description').value.trim();
 
-        function loadProfileAndFeed() {
-            fetch(`${RENDER_API_URL}/api/social/profile?user_id=${userId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        document.getElementById('followersCount').innerText = data.followers;
-                        document.getElementById('followingCount').innerText = data.following;
-                        document.getElementById('postsCount').innerText = data.posts_count;
-                    }
-                })
-                .catch(err => console.log('Профиль загружается...'));
+            const formData = {
+                type: "complaint",
+                user_id: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0,
+                content: `<b>[ФОРУМ] Раздел:</b> ${section}\n` +
+                         `<b>Автор:</b> ${author}\n` +
+                         `<b>Тема / Нарушитель:</b> ${target}\n` +
+                         `<b>Описание:</b> ${description}`
+            };
 
-            fetch(`${RENDER_API_URL}/api/social/feed`)
-                .then(res => res.json())
-                .then(data => {
-                    const feedDiv = document.getElementById('feed');
-                    if (!data.posts || data.posts.length === 0) {
-                        feedDiv.innerHTML = '<p style="text-align: center; color: var(--text-muted);">В ленте пока пусто. Опубликуйте первую историю!</p>';
-                        return;
-                    }
-                    
-                    feedDiv.innerHTML = '';
-                    data.posts.forEach(post => {
-                        const postEl = document.createElement('div');
-                        postEl.className = 'post';
-                        postEl.innerHTML = `
-                            <div class="post-author">👤 ${post.author}</div>
-                            <div class="post-content">${post.text}</div>
-                            <div class="post-actions">
-                                <button class="like-btn" onclick="likePost(${post.id})">❤️ <span id="likes-${post.id}">${post.likes}</span></button>
-                                <span style="font-size: 11px; color: var(--text-muted);">${post.date}</span>
-                            </div>
-                        `;
-                        feedDiv.appendChild(postEl);
-                    });
-                })
-                .catch(err => {
-                    document.getElementById('feed').innerHTML = '<p style="text-align: center; color: #ff4757;">Сервер соцсети просыпается...</p>';
-                });
-        }
+            const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com/api/submit';
 
-        function createPost() {
-            const author = document.getElementById('postTitle').value.trim();
-            const text = document.getElementById('postText').value.trim();
-
-            if (!text) {
-                alert('Напишите что-нибудь для публикации!');
-                return;
-            }
-
-            fetch(`${RENDER_API_URL}/api/social/post`, {
+            fetch(RENDER_API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, author: author, text: text })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
             })
-            .then(res => res.json())
+            .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    document.getElementById('postText').value = '';
-                    loadProfileAndFeed();
+                    alert('Тема на форуме успешно создана!');
+                    tg.close();
+                } else {
+                    alert('Ошибка публикации: ' + (data.message || 'Неизвестная ошибка'));
                 }
-            });
-        }
-
-        function likePost(postId) {
-            fetch(`${RENDER_API_URL}/api/social/like`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ post_id: postId, user_id: userId })
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    document.getElementById(`likes-${postId}`).innerText = data.likes;
-                }
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка соединения с сервером.');
             });
-        }
-
-        loadProfileAndFeed();
-        setInterval(loadProfileAndFeed, 10000);
+        });
     </script>
 </body>
 </html>
