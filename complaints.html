@@ -59,7 +59,7 @@
         }
         textarea {
             resize: vertical;
-            min-height: 120px;
+            min-height: 140px;
         }
         .primary-btn {
             background: var(--accent-color);
@@ -89,7 +89,7 @@
             <option value="suggestion">💡 Предложения по улучшению</option>
         </select>
 
-        <label>ТЕКСТ ОБРАЩЕНИЯ / ШАБЛОН:</label>
+        <label id="content-label">ШАБЛОН ОБРАЩЕНИЯ:</label>
         <textarea id="forum-content" placeholder="Опишите ситуацию..."></textarea>
 
         <button class="primary-btn" onclick="submitComplaint()">СОЗДАТЬ ТЕМУ</button>
@@ -99,10 +99,10 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Ссылка на ваш бэкенд на Render
+        // Ссылка на бэкенд Render
         const BACKEND_URL = 'https://greeland-bot.onrender.com';
 
-        // Уникальные шаблоны для каждого раздела
+        // Разные шаблоны под каждый раздел (без полей ID)
         const templates = {
             player: 
 `1. Ваш никнейм: 
@@ -124,7 +124,8 @@
 
         function updateTemplate() {
             let section = document.getElementById('forum-section').value;
-            document.getElementById('forum-content').value = templates[section] || '';
+            let textarea = document.getElementById('forum-content');
+            textarea.value = templates[section] || '';
         }
 
         window.onload = function() {
