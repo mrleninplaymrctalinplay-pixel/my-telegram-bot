@@ -3,181 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Форум жалоб - GreeLand RP</title>
+    <title>GreeLand // Forum</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
-            --bg-color: #0d0f12;
-            --card-bg: #161920;
-            --accent-color: #f39c12;
-            --accent-hover: #e67e22;
-            --text-main: #ffffff;
-            --text-muted: #8b949e;
-            --border-color: #21262d;
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-color: #ff9800;
+            --border-color: #333;
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-main);
-            padding: 15px;
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             margin: 0;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .forum-header {
-            background: var(--card-bg);
-            border-left: 4px solid var(--accent-color);
             padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            box-sizing: border-box;
         }
-        .forum-header h2 {
-            margin: 0;
-            font-size: 17px;
+        .header {
+            margin-bottom: 20px;
+        }
+        .header h2 {
             color: var(--accent-color);
-            letter-spacing: 0.5px;
+            margin: 0 0 5px 0;
         }
-        .forum-header p {
-            margin: 5px 0 0 0;
-            font-size: 12px;
-            color: var(--text-muted);
+        .header p {
+            color: #888;
+            font-size: 13px;
+            margin: 0;
         }
         .form-card {
             background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 18px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
         }
         label {
             display: block;
-            margin-top: 12px;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 6px;
         }
-        input, select, textarea {
+        select, textarea {
             width: 100%;
             padding: 12px;
-            margin-top: 6px;
-            background: #0d0f12;
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
             border-radius: 8px;
             box-sizing: border-box;
             font-size: 14px;
-            transition: border-color 0.2s;
-        }
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--accent-color);
-            outline: none;
+            margin-bottom: 12px;
         }
         textarea {
             resize: vertical;
-            height: 110px;
+            min-height: 120px;
         }
-        button {
-            width: 100%;
-            background-color: var(--accent-color);
-            color: #0d0f12;
-            padding: 14px;
+        .primary-btn {
+            background: var(--accent-color);
+            color: #000;
             border: none;
+            padding: 14px;
+            font-weight: bold;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: 800;
+            width: 100%;
             cursor: pointer;
-            margin-top: 20px;
-            transition: background-color 0.2s, transform 0.1s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        button:hover {
-            background-color: var(--accent-hover);
-        }
-        button:active {
-            transform: scale(0.97);
+            font-size: 16px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="forum-header">
-            <h2>GREE LAND // FORUM</h2>
-            <p>Подача жалоб, заявлений и предложений по развитию проекта</p>
-        </div>
 
-        <div class="form-card">
-            <form id="forumForm">
-                <label>Раздел форума:</label>
-                <select id="sectionType">
-                    <option value="Жалоба на игрока">📂 Жалобы на игроков</option>
-                    <option value="Жалоба на администрацию">🛡️ Жалобы на администрацию</option>
-                    <option value="Предложение по улучшению">💡 Предложения по улучшению</option>
-                </select>
+    <div class="header">
+        <h2>GREE LAND // FORUM</h2>
+        <p>Подача жалоб, заявлений и предложений по развитию проекта</p>
+    </div>
 
-                <label>Ваш Static ID / NickName:</label>
-                <input type="text" id="author" required placeholder="Например: John Smith [12345]">
+    <div class="form-card">
+        <label>РАЗДЕЛ ФОРУМА:</label>
+        <select id="forum-section" onchange="updateTemplate()">
+            <option value="player">📁 Жалобы на игроков</option>
+            <option value="admin">🛡️ Жалобы на администрацию</option>
+            <option value="suggestion">💡 Предложения по улучшению</option>
+        </select>
 
-                <label>Нарушитель / Тема обращения:</label>
-                <input type="text" id="target" required placeholder="Укажите ID нарушителя или название темы">
+        <label>ТЕКСТ ОБРАЩЕНИЯ / ШАБЛОН:</label>
+        <textarea id="forum-content" placeholder="Опишите ситуацию..."></textarea>
 
-                <label>Суть обращения / Доказательства:</label>
-                <textarea id="description" required placeholder="Подробно опишите ситуацию, приложите тайм-коды или ссылки..."></textarea>
-
-                <button type="submit">Создать тему</button>
-            </form>
-        </div>
+        <button class="primary-btn" onclick="submitComplaint()">СОЗДАТЬ ТЕМУ</button>
     </div>
 
     <script>
-        let tg = window.Telegram.WebApp;
+        const tg = window.Telegram.WebApp;
         tg.expand();
 
-        document.getElementById('forumForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Ссылка на ваш бэкенд на Render
+        const BACKEND_URL = 'https://greeland-bot.onrender.com';
 
-            const section = document.getElementById('sectionType').value;
-            const author = document.getElementById('author').value.trim();
-            const target = document.getElementById('target').value.trim();
-            const description = document.getElementById('description').value.trim();
+        // Уникальные шаблоны для каждого раздела
+        const templates = {
+            player: 
+`1. Ваш никнейм: 
+2. Никнейм нарушителя: 
+3. Суть жалобы: 
+4. Доказательства (видео/скриншоты): `,
+            
+            admin: 
+`1. Ваш никнейм: 
+2. Никнейм администратора: 
+3. Суть жалобы / в чем несогласны: 
+4. Доказательства: `,
+            
+            suggestion: 
+`1. Ваше имя / никнейм: 
+2. Суть улучшения / идеи: 
+3. Чем это поможет проекту GreeLand RP: `
+        };
 
-            const formData = {
-                type: "complaint",
-                user_id: tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0,
-                content: `<b>[ФОРУМ] Раздел:</b> ${section}\n` +
-                         `<b>Автор:</b> ${author}\n` +
-                         `<b>Тема / Нарушитель:</b> ${target}\n` +
-                         `<b>Описание:</b> ${description}`
-            };
+        function updateTemplate() {
+            let section = document.getElementById('forum-section').value;
+            document.getElementById('forum-content').value = templates[section] || '';
+        }
 
-            const RENDER_API_URL = 'https://my-telegram-bot-vo4s.onrender.com/api/submit';
+        window.onload = function() {
+            updateTemplate();
+        };
 
-            fetch(RENDER_API_URL, {
+        function submitComplaint() {
+            let sectionSelect = document.getElementById('forum-section');
+            let sectionName = sectionSelect.options[sectionSelect.selectedIndex].text;
+            let content = document.getElementById('forum-content').value.trim();
+
+            if (!content) {
+                alert("Пожалуйста, заполните текст обращения!");
+                return;
+            }
+
+            let user = tg.initDataUnsafe?.user;
+            let userId = user ? user.id : 123456789;
+            let userName = user ? (user.first_name + (user.username ? ` (@${user.username})` : '')) : 'Игрок';
+
+            let fullText = `📌 <b>Раздел:</b> ${sectionName}\n👤 <b>От:</b> ${userName} (ID: <code>${userId}</code>)\n\n${content}`;
+
+            fetch(`${BACKEND_URL}/api/submit`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'complaint',
+                    user_id: userId,
+                    content: fullText
+                })
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    alert('Тема на форуме успешно создана и отправлена администраторам!');
+                    alert('Тема успешно создана и отправлена администраторам!');
                     tg.close();
                 } else {
-                    alert('Ошибка публикации: ' + (data.message || 'Неизвестная ошибка'));
+                    alert('Ошибка отправки. Попробуйте еще раз.');
                 }
             })
-            .catch(error => {
-                console.error('Ошибка:', error);
-                alert('Ошибка соединения с сервером. Попробуйте еще раз.');
+            .catch(err => {
+                console.error(err);
+                alert('Ошибка соединения с сервером.');
             });
-        });
+        }
     </script>
 </body>
 </html>
